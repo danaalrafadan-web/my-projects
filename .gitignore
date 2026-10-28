@@ -1,0 +1,15 @@
+# إعدادات Claude الخاصة بجهازي
+.claude/
+
+# ملفات أسرار (لو انضافت مستقبلاً)
+.env
+*.env
+
+# ملفات النظام والبناء
+Thumbs.db
+desktop.ini
+.DS_Store
+out/
+build/
+*.class
+.gradle/

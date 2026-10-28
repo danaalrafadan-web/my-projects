@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#14284b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>نظام الحضور والانصراف</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8913f" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><h1>نظام الحضور والانصراف</h1><p>بوابة الموظفين</p></div>
+    </div>
+    <div class="user" id="userBar" hidden>
+      <span id="who"></span>
+      <a id="adminLink" href="admin.html" hidden>لوحة المدير</a>
+      <button onclick="logout()">خروج</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loginBox" class="panel login" hidden>
+    <form class="panel-b" onsubmit="doLogin(event)">
+      <h2>تسجيل الدخول</h2>
+      <p>أدخل بياناتك للوصول إلى نظام البصمة</p>
+      <div class="field"><label for="empId">الرقم الوظيفي</label><input id="empId" inputmode="numeric" autocomplete="username" required></div>
+      <div class="field"><label for="pin">الرمز السري</label><input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required></div>
+      <button class="primary full">دخول</button>
+      <div class="msg err" id="loginMsg"></div>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <section class="panel">
+      <div class="hero">
+        <div class="hero-time">
+          <div class="clock" id="clock">--:--:--</div>
+          <div class="date" id="date"></div>
+          <div class="badge"><span class="dot" id="dot"></span><span id="status">...</span></div>
+        </div>
+        <div class="hero-act">
+          <div class="label" id="shiftInfo">الإجراء المتاح</div>
+          <div class="btns" id="btns"></div>
+          <div class="msg err" id="punchMsg"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="stats">
+        <div class="stat"><span>وقت الحضور</span><b id="stIn">—</b></div>
+        <div class="stat"><span>التأخير</span><b id="stLate">—</b></div>
+        <div class="stat"><span>مدة الاستراحة</span><b id="stBrk">—</b></div>
+        <div class="stat"><span>العمل الإضافي</span><b id="stOt">—</b></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2>حركات اليوم</h2></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>الحركة</th><th>الوقت</th></tr></thead>
+        <tbody id="log"></tbody>
+      </table></div>
+    </section>
+  </div>
+</main>
+<footer>نظام الحضور والانصراف · مرتبط بقاعدة بيانات Oracle</footer>
+
+<script src="common.js"></script>
+<script>
+const STATUS = {
+  null:['لم يتم تسجيل الحضور','var(--muted)'], IN:['على رأس العمل','var(--in)'], BREAK_END:['على رأس العمل','var(--in)'],
+  BREAK_START:['في الاستراحة','var(--brk)'], OT_START:['عمل إضافي','var(--ot)'], OUT:['تم الانصراف','var(--out)'], OT_END:['تم الانصراف','var(--out)']
+};
+let clockOffset = 0; // الفرق بين وقت الخادم ووقت الجهاز
+const mins = t => { const [h,m] = t.split(':'); return +h*60 + +m; };
+
+async function doLogin(e){
+  e.preventDefault();
+  $('loginMsg').textContent = '';
+  try{
+    const s = await api('/api/login', {empId: $('empId').value, pin: $('pin').value});
+    session.set(s); show();
+  }catch(err){ $('loginMsg').textContent = err.message; }
+}
+
+function render(d){
+  const sec = s => { const [h,m,x] = s.split(':'); return (+h*3600 + +m*60 + +(x||0)) * 1000; };
+  const n = new Date(); clockOffset = sec(d.serverTime) - sec(n.toTimeString().slice(0,8));
+
+  $('shiftInfo').textContent = `${d.shift.name}: ${d.shift.start} – ${d.shift.end} · الاستراحة ${d.shift.breakTime}`;
+  $('btns').innerHTML = d.allowed.length ? d.allowed.map(a => { const x = ACT[a];
+    return `<button class="btn ${x.c}" onclick="punch('${a}', this)">${svg(ICON[x.i])}<span>${x.t}<small>${x.s}</small></span></button>`; }).join('')
+    : '<div class="empty">لا يوجد إجراء متاح في الوقت الحالي</div>';
+
+  const last = d.punches.length ? d.punches[d.punches.length-1].action : null, st = STATUS[last];
+  $('status').textContent = st[0]; $('dot').style.background = st[1];
+
+  const f = a => d.punches.find(p => p.action === a), inP = f('IN');
+  $('stIn').textContent = inP ? hm(inP.time) : '—';
+  const late = inP ? mins(inP.time) - mins(d.shift.start) : 0;
+  $('stLate').textContent = inP ? (late > 0 ? dur(late) : 'لا يوجد') : '—';
+  const bs = f('BREAK_START'), be = f('BREAK_END');
+  $('stBrk').textContent = bs && be ? dur(mins(be.time) - mins(bs.time)) : '—';
+  const os = f('OT_START'), oe = f('OT_END');
+  $('stOt').textContent = os && oe ? dur(mins(oe.time) - mins(os.time)) : '—';
+
+  $('log').innerHTML = d.punches.length ? d.punches.slice().reverse().map(p =>
+    `<tr><td><span class="tag"><i style="background:${ACT[p.action].color}"></i>${ACT[p.action].t}</span></td><td>${hm(p.time)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:var(--muted)">لا توجد حركات اليوم</td></tr>';
+}
+
+async function refresh(){
+  try{ render(await api('/api/status')); $('punchMsg').textContent = ''; }
+  catch(err){ $('punchMsg').textContent = err.message; }
+}
+
+async function punch(action, btn){
+  btn.disabled = true;
+  try{ render(await api('/api/punch', {action, device: deviceType()})); $('punchMsg').textContent = ''; }
+  catch(err){ $('punchMsg').textContent = err.message; btn.disabled = false; }
+}
+
+function tick(){
+  const d = new Date(Date.now() + clockOffset);
+  $('clock').textContent = d.toLocaleTimeString('en-GB');
+  $('date').textContent = d.toLocaleDateString('ar-SA', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+
+function show(){
+  const s = session.get();
+  $('loginBox').hidden = !!s; $('app').hidden = !s; $('userBar').hidden = !s;
+  if(s){
+    $('who').textContent = `${s.name} · ${s.empId}`;
+    $('adminLink').hidden = s.role !== 'ADMIN';
+    refresh();
+  }
+}
+
+setInterval(tick, 1000);
+setInterval(() => { if(session.get()) refresh(); }, 30000);
+tick(); show();
+</script>
+</body>
+</html>

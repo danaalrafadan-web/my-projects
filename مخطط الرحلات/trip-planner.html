@@ -1,0 +1,102 @@
+<title>مخطط الرحلات</title>
+<script>
+// ===== تعليمات الذكاء الاصطناعي: عدلها من هنا =====
+const AI_INSTRUCTIONS = `
+الدور: أنت مخطط رحلات سياحية خبير وودود.
+المهمة: تسوي برنامج رحلة يوم بيوم حسب الوجهة وعدد الأيام والميزانية والاهتمامات، وتقترح أماكن وأكل وتوزع الميزانية تقريبياً.
+الأسلوب: مرتب وواضح، عنوان لكل يوم ونقاط قصيرة (صباح، ظهر، مساء)، وتختم بنصيحتين عمليتين.
+اللهجة: مصريه 
+الطول: متوسط، ما يزيد عن 300 كلمة تقريباً.
+خارج الموضوع: إذا الطلب ما له علاقة بالسفر والرحلات، اعتذر بلطف وقل إنك تساعد بس في تخطيط الرحلات.
+`;
+// ===== نهاية التعليمات =====
+</script>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--text:#1f2a2e;--muted:#5d6b70;--accent:#0f7a6c;--accent-text:#fff;--border:#e2ddd3;--error:#b3261e;--error-bg:#fdecea}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a1c;--card:#1d2528;--text:#e8eef0;--muted:#9aa9ae;--accent:#3cbfa9;--accent-text:#0b1a17;--border:#2e3a3e;--error:#ffb4ab;--error-bg:#3a1d1a}}
+:root[data-theme="dark"]{--bg:#141a1c;--card:#1d2528;--text:#e8eef0;--muted:#9aa9ae;--accent:#3cbfa9;--accent-text:#0b1a17;--border:#2e3a3e;--error:#ffb4ab;--error-bg:#3a1d1a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,system-ui,sans-serif;line-height:1.7}
+main{max-width:680px;margin:0 auto;padding:24px 16px 48px}
+h1{margin:0 0 4px;font-size:1.6rem}
+.sub{margin:0 0 20px;color:var(--muted)}
+form,.result{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.row{grid-template-columns:1fr}}
+label{display:block;font-weight:600;margin:10px 0 4px;font-size:.95rem}
+input,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+textarea{min-height:90px;resize:vertical}
+.count{text-align:left;font-size:.8rem;color:var(--muted)}
+button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-text);font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.msg{margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--error-bg);color:var(--error);display:none}
+.result{margin-top:18px;display:none;white-space:pre-wrap}
+.status{color:var(--muted);font-size:.9rem;margin-top:10px;min-height:1.2em}
+</style>
+<main dir="rtl" lang="ar">
+  <h1>مخطط الرحلات</h1>
+  <p class="sub">اكتب وين تبي تروح، والذكاء الاصطناعي يرتب لك برنامج يوم بيوم.</p>
+  <form id="f">
+    <div class="row">
+      <div><label for="dest">الوجهة</label><input id="dest" maxlength="60" placeholder="مثلاً: أبها" required></div>
+      <div><label for="days">عدد الأيام</label><input id="days" type="number" min="1" max="14" value="3" required></div>
+    </div>
+    <div class="row">
+      <div><label for="budget">الميزانية (ريال)</label><input id="budget" type="number" min="0" placeholder="مثلاً: 3000"></div>
+      <div><label for="likes">الاهتمامات</label><input id="likes" maxlength="80" placeholder="طبيعة، أكل، تسوق…"></div>
+    </div>
+    <label for="notes">ملاحظات إضافية</label>
+    <textarea id="notes" maxlength="500" placeholder="مثلاً: معي أطفال، ما أحب المشي الطويل…"></textarea>
+    <div class="count"><span id="cnt">0</span> / 500</div>
+    <button id="go" type="submit">خطط رحلتي</button>
+    <div class="status" id="status"></div>
+    <div class="msg" id="msg"></div>
+  </form>
+  <div class="result" id="out"></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const MAX = 500;
+$("notes").addEventListener("input", () => { $("cnt").textContent = $("notes").value.length; });
+
+function showError(t){ $("msg").textContent = t; $("msg").style.display = "block"; }
+
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("msg").style.display = "none";
+  const notes = $("notes").value.trim();
+  if (notes.length > MAX) return showError("الملاحظات أطول من 500 حرف، اختصرها شوي.");
+  const dest = $("dest").value.trim();
+  if (!dest) return showError("اكتب الوجهة أول.");
+
+  const sample = await claude.use("sample");
+  if (!sample) return showError("ميزة الذكاء الاصطناعي مو متاحة هنا. افتح الصفحة من claude.ai وأنت مسجل دخول.");
+
+  const request = `الوجهة: ${dest}\nعدد الأيام: ${$("days").value}\nالميزانية: ${$("budget").value || "غير محددة"} ريال\nالاهتمامات: ${$("likes").value || "غير محددة"}\nملاحظات: ${notes || "لا يوجد"}`;
+  const prompt = `${AI_INSTRUCTIONS}\nمهم: رد دايم باللهجة المكتوبة في خانة "اللهجة" فوق.\n\nطلب المستخدم:\n${request}`;
+
+  $("go").disabled = true;
+  $("out").style.display = "block";
+  $("out").textContent = "";
+  $("status").textContent = "جاري التخطيط…";
+  const slow = setTimeout(() => { $("status").textContent = "الرد متأخر شوي، انتظر لحظات…"; }, 15000);
+  const ctrl = new AbortController();
+  const stop = setTimeout(() => ctrl.abort(), 90000);
+
+  try {
+    const res = await sample(prompt, { signal: ctrl.signal, cache: false, onText: ({text}) => { $("out").textContent = text; } });
+    $("out").textContent = res.text;
+    $("status").textContent = "";
+  } catch (err) {
+    $("status").textContent = "";
+    if (!$("out").textContent) $("out").style.display = "none";
+    if (ctrl.signal.aborted) showError("الرد تأخر كثير. جرب مرة ثانية بعد شوي.");
+    else if (err && err.code === "not_granted") showError("ما تم السماح للصفحة تسأل Claude. اسمح لها من قائمة الأذونات وجرب مرة ثانية.");
+    else if (err && err.code === "rate_limited") showError("طلبات كثيرة ورا بعض. انتظر دقيقة وجرب.");
+    else showError("صار خطأ وما قدرنا نجيب الخطة. جرب مرة ثانية.");
+  } finally {
+    clearTimeout(slow); clearTimeout(stop);
+    $("go").disabled = false;
+  }
+});
+</script>

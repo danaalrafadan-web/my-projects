@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مكتبة قوالب الأوامر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  /* ألوان الموقع — يكفي تعديل القيم هنا لتغيير الألوان في كل الصفحة */
+  :root {
+    --bg:       #f3f5f9;   /* خلفية الصفحة */
+    --card:     #ffffff;   /* خلفية البطاقات */
+    --text:     #172033;   /* لون النص */
+    --muted:    #69738a;   /* نص ثانوي */
+    --border:   #e4e8f0;   /* الحدود */
+    --primary:  #1d3a8a;   /* الأزرق الملكي (الأزرار) */
+    --primary-2:#2f5bd3;   /* درجة ثانية للتدرج */
+    --dark:     #0c1a3d;   /* الكحلي الداكن (الشريط العلوي) */
+    --gold:     #c9a45c;   /* لمسة ذهبية */
+    --soft:     #eef2fb;   /* خلفية خفيفة */
+    --success:  #15803d;
+    --danger:   #c0262d;
+    --shadow:   0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+  }
+  * { box-sizing:border-box; }
+  body { font-family:'IBM Plex Sans Arabic', Tahoma, sans-serif; background:var(--bg); margin:0; color:var(--text); font-size:15px; line-height:1.7; }
+
+  /* الشريط العلوي */
+  header {
+    color:#fff; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 15% 120%, rgba(201,164,92,.35), transparent 45%),
+      radial-gradient(circle at 90% -20%, rgba(47,91,211,.55), transparent 50%),
+      var(--dark);
+    padding-bottom:56px;
+  }
+  .header-inner { max-width:1100px; margin:auto; padding:30px 16px 0; display:flex; align-items:center; gap:16px; }
+  .logo { width:52px; height:52px; border-radius:14px; display:grid; place-items:center; font-weight:700; font-size:19px; flex-shrink:0;
+          background:linear-gradient(135deg, var(--gold), #e8cf97); color:var(--dark); box-shadow:0 6px 18px rgba(201,164,92,.35); }
+  header h1 { margin:0; font-size:22px; font-weight:700; letter-spacing:-.2px; }
+  header p { margin:2px 0 0; font-size:14px; color:#b9c4dc; }
+
+  .wrap { max-width:1100px; margin:-36px auto 0; padding:0 16px; display:grid; gap:22px; grid-template-columns: 5fr 6fr; align-items:start; position:relative; }
+  @media (max-width: 800px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* البطاقات */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); transition:box-shadow .2s, border-color .2s; }
+  .card-head { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .card-head h2 { margin:0; font-size:16px; font-weight:700; color:var(--dark); display:flex; align-items:center; gap:10px; }
+  .card-head h2::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 4px rgba(201,164,92,.18); flex-shrink:0; }
+  .card-body { padding:22px; }
+
+  /* الحقول */
+  label { display:block; font-size:13px; font-weight:600; color:var(--text); margin:14px 0 6px; }
+  label:first-child { margin-top:0; }
+  input, textarea, select { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font:inherit; color:var(--text); background:#fbfcfe; transition:border-color .15s, box-shadow .15s, background .15s; }
+  input:hover, textarea:hover, select:hover { border-color:#cfd6e4; }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--primary-2); background:#fff; box-shadow:0 0 0 4px rgba(47,91,211,.12); }
+  textarea { min-height:150px; resize:vertical; }
+  .hint { display:block; font-size:12px; color:var(--muted); margin-top:6px; }
+  #varsPreview { color:var(--primary); font-weight:600; }
+
+  /* الأزرار */
+  button {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; margin-top:18px; padding:12px 20px; border:none; border-radius:10px;
+    font:inherit; font-weight:600; font-size:15px; cursor:pointer; color:#fff;
+    background:linear-gradient(135deg, var(--primary), var(--primary-2));
+    box-shadow:0 4px 14px rgba(29,58,138,.25);
+    transition:transform .15s, box-shadow .15s, background .15s, color .15s;
+  }
+  button:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(29,58,138,.32); }
+  button:active { transform:translateY(0); box-shadow:0 2px 8px rgba(29,58,138,.25); }
+  button:disabled { opacity:.6; cursor:wait; transform:none; }
+  button:focus-visible { outline:3px solid rgba(47,91,211,.35); outline-offset:2px; }
+
+  /* أيقونات الأزرار */
+  button::before { content:''; width:17px; height:17px; flex-shrink:0; background:currentColor;
+    -webkit-mask:var(--icon) center/contain no-repeat; mask:var(--icon) center/contain no-repeat; }
+  #saveBtn    { --icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/%3E%3Cpath d='M17 21v-8H7v8M7 3v5h8'/%3E%3C/svg%3E"); }
+  #cancelEdit { --icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E"); }
+  #editBtn    { --icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'/%3E%3C/svg%3E"); }
+  #deleteBtn  { --icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6'/%3E%3C/svg%3E"); }
+  #copyBtn    { --icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E"); }
+
+  /* زر ثانوي */
+  .btn-outline { width:auto; margin:0; padding:8px 16px; font-size:13px; color:var(--primary); background:var(--soft); border:1.5px solid transparent; box-shadow:none; }
+  .btn-outline:hover { background:#e2e9fa; border-color:#c8d5f5; box-shadow:none; }
+  .btn-outline::before { width:15px; height:15px; }
+  .head-actions { display:flex; gap:8px; flex-shrink:0; }
+  .btn-danger { color:var(--danger); background:#fdf1f1; }
+  .btn-danger:hover { background:#fbe3e3; border-color:#f3c4c6; }
+  .btn-danger.confirm { color:#fff; background:var(--danger); box-shadow:0 4px 14px rgba(192,38,45,.3); animation:pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 0 6px rgba(192,38,45,.15); } }
+  #cancelEdit { width:100%; margin-top:10px; padding:11px; font-size:14px; color:var(--muted); background:#f4f6fa; }
+  #cancelEdit:hover { color:var(--text); background:#eceff5; border-color:var(--border); }
+
+  #status { font-size:13px; margin-top:12px; font-weight:600; }
+  #status:empty { display:none; }
+
+  /* قائمة القوالب */
+  .count { font-size:12px; font-weight:700; color:var(--primary); background:var(--soft); min-width:28px; text-align:center; padding:2px 10px; border-radius:20px; }
+  #search { padding-right:40px; background:#fbfcfe url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2369738a' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat right 14px center / 17px; }
+  #list { margin-top:14px; max-height:540px; overflow-y:auto; padding:2px; }
+  .tpl { border:1.5px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer; background:#fff; transition:all .15s; position:relative; }
+  .tpl:hover { border-color:#c8d5f5; transform:translateY(-1px); box-shadow:0 6px 16px rgba(16,24,40,.06); }
+  .tpl.active { border-color:var(--primary-2); background:linear-gradient(0deg, #f5f8ff, #fff); box-shadow:0 0 0 3px rgba(47,91,211,.1); }
+  .tpl-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tpl-title { font-weight:700; color:var(--dark); }
+  .tpl-desc { font-size:13px; color:var(--muted); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tpl-desc:empty { display:none; }
+  .tag { font-size:11px; font-weight:600; color:#8a6a2e; background:#faf4e7; padding:2px 10px; border-radius:20px; white-space:nowrap; }
+  .empty { color:var(--muted); text-align:center; padding:32px 0; font-size:14px; }
+
+  /* لوحة الاستخدام */
+  #usePanel { grid-column:1/-1; }
+  #useStatus { font-size:13px; padding:12px 22px 0; font-weight:600; }
+  #useStatus:empty { display:none; }
+  .vars-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:0 16px; }
+  pre { white-space:pre-wrap; background:#f7f9fd; border:1.5px dashed #cdd7ee; padding:18px; border-radius:12px; font-family:inherit; margin:0; line-height:1.9; }
+  #copyBtn { width:auto; padding:11px 28px; }
+
+  /* وضع التعديل */
+  #formCard.editing { border-color:var(--gold); box-shadow:0 0 0 4px rgba(201,164,92,.18), var(--shadow); }
+  #formCard.editing .card-head { background:linear-gradient(90deg, #fdf8ee, #fff); }
+
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:28px 16px 36px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="logo">AI</div>
+    <div>
+      <h1>مكتبة قوالب أوامر الذكاء الاصطناعي</h1>
+      <p>إنشاء القوالب وحفظها وإعادة استخدامها</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="card" id="formCard">
+    <div class="card-head"><h2 id="formTitle">إضافة قالب جديد</h2></div>
+    <div class="card-body">
+      <form id="addForm">
+        <label for="title">عنوان القالب</label>
+        <input id="title" placeholder="مثال: كتابة مقال احترافي" required>
+
+        <label for="category">التصنيف</label>
+        <select id="category">
+          <option>عام</option><option>كتابة</option><option>برمجة</option><option>تسويق</option><option>تعليم</option>
+        </select>
+
+        <label for="description">الوصف <span style="font-weight:400">(اختياري)</span></label>
+        <input id="description" placeholder="وصف مختصر لاستخدام القالب">
+
+        <label for="template">نص القالب</label>
+        <textarea id="template" required
+          placeholder="اكتب مقالاً عن {{الموضوع}} بأسلوب {{الأسلوب}} في حدود {{عدد_الكلمات}} كلمة"></textarea>
+        <span class="hint">ضع المتغيرات بين قوسين مزدوجين مثل {{الموضوع}}</span>
+        <span class="hint" id="varsPreview"></span>
+
+        <button type="submit" id="saveBtn">حفظ القالب</button>
+        <button type="button" id="cancelEdit" class="btn-outline" style="display:none">إلغاء التعديل</button>
+        <div id="status"></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>القوالب المحفوظة</h2><span class="count" id="count">0</span></div>
+    <div class="card-body">
+      <input id="search" placeholder="ابحث بالعنوان أو النص...">
+      <div id="list"><div class="empty">جارِ التحميل...</div></div>
+    </div>
+  </section>
+
+  <section class="card" id="usePanel" style="display:none">
+    <div class="card-head"><h2 id="useTitle"></h2><div class="head-actions"><button type="button" id="editBtn" class="btn-outline">تعديل القالب</button><button type="button" id="deleteBtn" class="btn-outline btn-danger">حذف القالب</button></div></div>
+    <div id="useStatus" style="color:var(--danger)"></div>
+    <div class="card-body">
+      <div class="vars-grid" id="varInputs"></div>
+      <label style="margin-top:16px">الأمر النهائي</label>
+      <pre id="output"></pre>
+      <button id="copyBtn">نسخ الأمر</button>
+    </div>
+  </section>
+</div>
+
+<footer>مكتبة قوالب الأوامر · مرتبطة بقاعدة بيانات Supabase</footer>
+
+<script>
+  // ضع بيانات مشروعك من Supabase → Project Settings → API
+  const SUPABASE_URL = 'https://bulnrcxgttththpzfqtl.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_BfRCJCwQBcFBizj8wTQKnA_eTJ7Sl3Y';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let templates = [];
+
+  function showStatus(msg, color) {
+    const s = document.getElementById('status');
+    s.textContent = msg;
+    s.style.color = color === 'green' ? 'var(--success)' : 'var(--danger)';
+  }
+
+  const extractVars = (text) =>
+    [...new Set([...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(m => m[1]))];
+
+  document.getElementById('template').addEventListener('input', e => {
+    const v = extractVars(e.target.value);
+    document.getElementById('varsPreview').textContent = v.length ? 'المتغيرات: ' + v.join('، ') : '';
+  });
+
+  // INSERT
+  document.getElementById('addForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = document.getElementById('template').value.trim();
+    const row = {
+      title:       document.getElementById('title').value.trim(),
+      category:    document.getElementById('category').value,
+      description: document.getElementById('description').value.trim() || null,
+      template:    text,
+      prompt_text: text,
+      variables:   extractVars(text),
+    };
+    if (SUPABASE_URL.includes('YOUR-PROJECT')) {
+      return showStatus('⚠️ لم يتم الحفظ: أضف SUPABASE_URL و SUPABASE_ANON_KEY داخل الملف أولاً.', 'red');
+    }
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = 'جارِ الحفظ...';
+
+    let error;
+    if (editingId) {
+      // UPDATE: تعديل قالب موجود
+      const res = await db.from('prompt_templates')
+        .update({ ...row, updated_at: new Date().toISOString() })
+        .eq('id', editingId)
+        .select();
+      error = res.error;
+      if (!error && !res.data?.length) {
+        error = { message: 'لم يتم التعديل — تأكد من وجود سياسة UPDATE في Supabase.' };
+      }
+    } else {
+      // INSERT: حفظ قالب جديد
+      ({ error } = await db.from('prompt_templates').insert(row));
+    }
+
+    btn.disabled = false;
+    if (error) {
+      btn.textContent = editingId ? 'حفظ التعديلات' : 'حفظ القالب';
+      return showStatus('❌ خطأ في الحفظ: ' + error.message, 'red');
+    }
+    const msg = editingId ? '✅ تم تعديل القالب بنجاح' : '✅ تم حفظ القالب بنجاح';
+    const updatedId = editingId;
+    exitEditMode();
+    showStatus(msg, 'green');
+    await loadTemplates();
+    if (updatedId) {
+      const t = templates.find(x => x.id === updatedId);
+      if (t) openTemplate(t);
+    }
+  });
+
+  // ===== وضع التعديل =====
+  let editingId = null;
+
+  function enterEditMode(t) {
+    editingId = t.id;
+    document.getElementById('title').value = t.title;
+    document.getElementById('category').value = t.category || 'عام';
+    document.getElementById('description').value = t.description || '';
+    document.getElementById('template').value = t.template;
+    document.getElementById('template').dispatchEvent(new Event('input'));
+    document.getElementById('formTitle').textContent = 'تعديل القالب';
+    document.getElementById('saveBtn').textContent = 'حفظ التعديلات';
+    document.getElementById('cancelEdit').style.display = 'flex';
+    document.getElementById('formCard').classList.add('editing');
+    showStatus('', 'green');
+    document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('title').focus({ preventScroll: true });
+  }
+
+  function exitEditMode() {
+    editingId = null;
+    document.getElementById('addForm').reset();
+    document.getElementById('varsPreview').textContent = '';
+    document.getElementById('formTitle').textContent = 'إضافة قالب جديد';
+    document.getElementById('saveBtn').textContent = 'حفظ القالب';
+    document.getElementById('cancelEdit').style.display = 'none';
+    document.getElementById('formCard').classList.remove('editing');
+    showStatus('', 'green');
+  }
+
+  document.getElementById('cancelEdit').onclick = exitEditMode;
+
+  // ===== DELETE: حذف قالب (يحتاج ضغطتين للتأكيد) =====
+  let deleteTimer = null;
+
+  function resetDeleteBtn() {
+    clearTimeout(deleteTimer);
+    const b = document.getElementById('deleteBtn');
+    b.classList.remove('confirm');
+    b.textContent = 'حذف القالب';
+    b.disabled = false;
+  }
+
+  async function deleteTemplate(t) {
+    const b = document.getElementById('deleteBtn');
+    // الضغطة الأولى: طلب التأكيد
+    if (!b.classList.contains('confirm')) {
+      b.classList.add('confirm');
+      b.textContent = 'اضغط مرة أخرى للتأكيد';
+      deleteTimer = setTimeout(resetDeleteBtn, 4000);
+      return;
+    }
+    // الضغطة الثانية: الحذف الفعلي
+    clearTimeout(deleteTimer);
+    b.disabled = true; b.textContent = 'جارِ الحذف...';
+    const { data, error } = await db.from('prompt_templates').delete().eq('id', t.id).select();
+    if (error || !data?.length) {
+      resetDeleteBtn();
+      const msg = error ? error.message : 'لم يتم الحذف — تأكد من وجود سياسة DELETE في Supabase.';
+      document.getElementById('useStatus').textContent = '❌ ' + msg;
+      return;
+    }
+    if (editingId === t.id) exitEditMode();
+    document.getElementById('usePanel').style.display = 'none';
+    showStatus('✅ تم حذف القالب "' + t.title + '"', 'green');
+    loadTemplates();
+  }
+
+  // SELECT
+  async function loadTemplates() {
+    if (SUPABASE_URL.includes('YOUR-PROJECT')) {
+      document.getElementById('list').textContent = '⚠️ أضف SUPABASE_URL و SUPABASE_ANON_KEY داخل الملف.';
+      return;
+    }
+    const { data, error } = await db
+      .from('prompt_templates')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) {
+      document.getElementById('list').textContent = 'خطأ: ' + error.message;
+      return;
+    }
+    // توحيد اسم حقل النص سواء كان في prompt_text أو template
+    // والمتغيرات تُستخرج من النص نفسه (عمود variables قد يكون نصاً وليس قائمة)
+    templates = data.map(t => {
+      const text = t.prompt_text ?? t.template ?? '';
+      return { ...t, title: t.title ?? '', template: text, variables: extractVars(text) };
+    });
+    renderList();
+  }
+
+  function renderList() {
+    const q = document.getElementById('search').value.trim();
+    const list = document.getElementById('list');
+    const filtered = templates.filter(t => !q || t.title.includes(q) || t.template.includes(q));
+    document.getElementById('count').textContent = templates.length;
+    list.innerHTML = filtered.length ? '' : '<div class="empty">لا توجد قوالب.</div>';
+    filtered.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'tpl';
+      div.innerHTML = `<div class="tpl-top"><span class="tpl-title"></span><span class="tag"></span></div><div class="tpl-desc"></div>`;
+      div.querySelector('.tpl-title').textContent = t.title;
+      div.querySelector('.tag').textContent = (t.category || 'عام') + (t.version ? ' · v' + t.version : '');
+      div.querySelector('.tpl-desc').textContent = t.description || '';
+      div.onclick = () => {
+        list.querySelectorAll('.tpl').forEach(x => x.classList.remove('active'));
+        div.classList.add('active');
+        openTemplate(t);
+      };
+      list.appendChild(div);
+    });
+  }
+  document.getElementById('search').addEventListener('input', renderList);
+
+  function openTemplate(t) {
+    document.getElementById('usePanel').style.display = 'block';
+    document.getElementById('useTitle').textContent = 'استخدام القالب: ' + t.title;
+    document.getElementById('editBtn').onclick = () => enterEditMode(t);
+    resetDeleteBtn();
+    document.getElementById('useStatus').textContent = '';
+    document.getElementById('deleteBtn').onclick = () => deleteTemplate(t);
+    const box = document.getElementById('varInputs');
+    box.innerHTML = '';
+    t.variables.forEach(v => {
+      const wrap = document.createElement('div');
+      const lbl = document.createElement('label');
+      lbl.textContent = v.replace(/_/g, ' ');
+      const inp = document.createElement('input');
+      inp.placeholder = 'أدخل ' + v.replace(/_/g, ' ');
+      inp.dataset.var = v;
+      inp.oninput = () => build(t);
+      wrap.append(lbl, inp);
+      box.appendChild(wrap);
+    });
+    build(t);
+    document.getElementById('usePanel').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function build(t) {
+    let out = t.template;
+    document.querySelectorAll('#varInputs input').forEach(i => {
+      const re = new RegExp(`\\{\\{\\s*${i.dataset.var.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\}\\}`, 'g');
+      out = out.replace(re, i.value || `{{${i.dataset.var}}}`);
+    });
+    document.getElementById('output').textContent = out;
+  }
+
+  document.getElementById('copyBtn').onclick = () =>
+    navigator.clipboard.writeText(document.getElementById('output').textContent)
+      .then(() => {
+        const b = document.getElementById('copyBtn');
+        b.textContent = 'تم النسخ ✓';
+        setTimeout(() => b.textContent = 'نسخ الأمر', 1500);
+      });
+
+  loadTemplates();
+</script>
+</body>
+</html>

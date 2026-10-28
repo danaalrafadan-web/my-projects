@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#14284b">
+<title>لوحة المدير</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8913f" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><h1>لوحة المدير</h1><p>متابعة الحضور والغياب</p></div>
+    </div>
+    <div class="user"><span id="who"></span><a href="index.html">صفحة البصمة</a><button onclick="logout()">خروج</button></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="stats">
+      <div class="stat"><span>إجمالي الموظفين</span><b id="kTotal">—</b></div>
+      <div class="stat"><span>الحاضرون</span><b id="kPresent" style="color:var(--in)">—</b></div>
+      <div class="stat"><span>الغائبون</span><b id="kAbsent" style="color:var(--out)">—</b></div>
+      <div class="stat"><span>المتأخرون</span><b id="kLate" style="color:var(--brk)">—</b></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">
+      <h2>الحضور اليومي</h2>
+      <div class="inline">
+        <input type="date" id="day" onchange="loadSummary()">
+        <button class="secondary" onclick="exportCsv()">تصدير CSV</button>
+      </div>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>الرقم</th><th>الاسم</th><th>القسم</th><th>الدوام</th><th>الحضور</th><th>الاستراحة</th><th>الانصراف</th><th>الحالة</th><th>التأخير</th><th>إضافي</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h"><h2>إضافة موظف</h2></div>
+    <form class="panel-b" onsubmit="addEmp(event)">
+      <div class="grid">
+        <div><label>الرقم الوظيفي</label><input id="nId" required></div>
+        <div><label>الاسم</label><input id="nName" required></div>
+        <div><label>القسم</label><select id="nDept"></select></div>
+        <div><label>الدوام</label><select id="nShift"></select></div>
+        <div><label>الصلاحية</label><select id="nRole"><option value="EMP">موظف</option><option value="ADMIN">مدير</option></select></div>
+        <div><label>الرمز السري</label><input id="nPin" type="password" minlength="4" required></div>
+      </div>
+      <div style="margin-top:14px"><button class="primary">إضافة</button></div>
+      <div class="msg" id="empMsg"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h"><h2>الموظفون</h2></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>الرقم</th><th>الاسم</th><th>القسم</th><th>الصلاحية</th><th>الحالة</th></tr></thead>
+      <tbody id="emps"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="common.js"></script>
+<script>
+const s = session.get();
+if(!s || s.role !== 'ADMIN') location.href = 'index.html';
+$('who').textContent = s ? s.name : '';
+$('day').value = new Date().toLocaleDateString('en-CA');
+
+const COLORS = {PRESENT:'var(--in)', BREAK:'var(--brk)', OVERTIME:'var(--ot)', LEFT:'var(--navy2)', ABSENT:'var(--out)'};
+let current = [];
+
+async function loadSummary(){
+  try{
+    const d = await api('/api/admin/summary?date=' + encodeURIComponent($('day').value));
+    current = d.rows;
+    $('kTotal').textContent = d.rows.length;
+    $('kAbsent').textContent = d.rows.filter(r => r.status === 'ABSENT').length;
+    $('kPresent').textContent = d.rows.length - d.rows.filter(r => r.status === 'ABSENT').length;
+    $('kLate').textContent = d.rows.filter(r => r.late > 0).length;
+    $('rows').innerHTML = d.rows.length ? d.rows.map(r => `<tr>
+      <td>${esc(r.empId)}</td><td>${esc(r.name)}</td><td>${esc(r.dept)}</td><td>${esc(r.shift)}</td>
+      <td>${hm(r.in)}</td><td>${r.breakStart ? hm(r.breakStart) + ' – ' + hm(r.breakEnd) : '—'}</td><td>${hm(r.out)}</td>
+      <td><span class="pill" style="background:${COLORS[r.status]}">${esc(r.statusLabel)}</span></td>
+      <td>${dur(r.late)}</td><td>${dur(r.overtime)}</td></tr>`).join('')
+      : '<tr><td colspan="10" style="text-align:center;color:var(--muted)">لا يوجد موظفون</td></tr>';
+  }catch(err){ $('rows').innerHTML = `<tr><td colspan="10" class="msg err">${esc(err.message)}</td></tr>`; }
+}
+
+async function loadEmployees(){
+  const d = await api('/api/admin/employees');
+  $('emps').innerHTML = d.rows.map(e => `<tr><td>${esc(e.empId)}</td><td>${esc(e.name)}</td><td>${esc(e.dept)}</td>
+    <td>${e.role === 'ADMIN' ? 'مدير' : 'موظف'}</td><td>${e.active ? 'نشط' : 'موقوف'}</td></tr>`).join('');
+}
+
+async function loadLookups(){
+  const d = await api('/api/admin/lookups');
+  $('nDept').innerHTML = d.departments.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  $('nShift').innerHTML = d.shifts.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+}
+
+async function addEmp(e){
+  e.preventDefault();
+  const m = $('empMsg');
+  try{
+    await api('/api/admin/employees', {empId:$('nId').value, name:$('nName').value, deptId:$('nDept').value,
+      shiftId:$('nShift').value, role:$('nRole').value, pin:$('nPin').value});
+    m.className = 'msg ok'; m.textContent = 'تمت إضافة الموظف';
+    e.target.reset(); loadEmployees(); loadSummary();
+  }catch(err){ m.className = 'msg err'; m.textContent = err.message; }
+}
+
+function exportCsv(){
+  const head = ['الرقم','الاسم','القسم','الدوام','الحضور','بداية الاستراحة','نهاية الاستراحة','الانصراف','الحالة','التأخير (د)','إضافي (د)'];
+  const lines = [head].concat(current.map(r => [r.empId, r.name, r.dept, r.shift, hm(r.in), hm(r.breakStart), hm(r.breakEnd), hm(r.out), r.statusLabel, r.late, r.overtime]));
+  const csv = '﻿' + lines.map(l => l.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `attendance-${$('day').value}.csv`; a.click();
+}
+
+if(s && s.role === 'ADMIN'){ loadSummary(); loadEmployees().catch(()=>{}); loadLookups().catch(()=>{}); setInterval(loadSummary, 60000); }
+</script>
+</body>
+</html>

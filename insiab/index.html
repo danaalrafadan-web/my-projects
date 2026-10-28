@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>انسياب | INSIAB AI</title>
+<meta name="description" content="انسياب – منصة تجريبية لتحليل ومحاكاة الازدحام المروري في مدينة الرياض">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23070b1a'/%3E%3Cpath d='M14 50 C24 40 26 30 32 22 M32 22 C38 30 40 40 50 50 M32 22 V10' stroke='%2338bdf8' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='22' r='5' fill='%23a78bfa'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#05070f; --bg2:#0a1024; --navy:#0d1633; --panel:rgba(18,28,60,.55); --panel-solid:#0f1838;
+  --line:rgba(120,160,255,.14); --line2:rgba(120,160,255,.28);
+  --text:#e8ecff; --muted:#93a0c8; --dim:#6a769d;
+  --cyan:#38bdf8; --violet:#a78bfa; --pink:#e879f9;
+  --green:#22c55e; --yellow:#facc15; --red:#ef4444;
+  --grad:linear-gradient(135deg,#38bdf8 0%,#818cf8 50%,#a78bfa 100%);
+  --radius:20px; --shadow:0 20px 60px -20px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;
+  background-image:radial-gradient(1200px 600px at 85% -10%,rgba(56,189,248,.12),transparent 60%),radial-gradient(900px 600px at 0% 30%,rgba(167,139,250,.10),transparent 60%);}
+a{color:inherit;text-decoration:none}
+button,select,input{font-family:inherit;font-size:inherit;color:inherit}
+.container{width:min(1240px,100% - 32px);margin-inline:auto}
+.en{font-family:'Space Grotesk',sans-serif;letter-spacing:.04em}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- Header ---------- */
+header{position:sticky;top:0;z-index:1000;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(5,7,15,.72);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:40px;height:40px}
+.brand b{font-size:1.2rem;display:block;line-height:1}
+.brand small{font-size:.7rem;color:var(--muted);display:block;line-height:1.4}
+.nav-links{display:flex;gap:4px;list-style:none}
+.nav-links a{padding:8px 12px;border-radius:10px;color:var(--muted);font-size:.92rem;transition:.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text);background:rgba(120,160,255,.1)}
+.nav-actions{display:flex;gap:8px;align-items:center}
+.menu-btn{display:none}
+@media (max-width:1080px){
+  .nav-links{position:fixed;top:68px;inset-inline:0;flex-direction:column;background:rgba(5,7,15,.97);padding:12px 16px 20px;border-bottom:1px solid var(--line);display:none}
+  .nav-links.open{display:flex}
+  .menu-btn{display:inline-flex}
+}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:14px;border:1px solid var(--line2);background:rgba(120,160,255,.06);cursor:pointer;font-weight:600;transition:.25s;white-space:nowrap}
+.btn:hover{border-color:var(--cyan);background:rgba(56,189,248,.1);transform:translateY(-1px)}
+.btn-primary{background:var(--grad);border:none;color:#06091a;box-shadow:0 10px 30px -8px rgba(99,140,255,.6)}
+.btn-primary:hover{background:var(--grad);filter:brightness(1.1);box-shadow:0 14px 40px -8px rgba(129,140,248,.8)}
+.btn-sm{padding:8px 14px;font-size:.85rem;border-radius:11px}
+.btn-icon{padding:9px;border-radius:11px}
+.btn:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;min-height:calc(100vh - 68px);display:flex;align-items:center;overflow:hidden;padding:60px 0}
+#netCanvas{position:absolute;inset:0;width:100%;height:100%;opacity:.85}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:160px;background:linear-gradient(transparent,var(--bg))}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;border:1px solid var(--line2);background:rgba(56,189,248,.07);font-size:.82rem;color:var(--cyan)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.hero h1{font-size:clamp(3rem,8vw,6rem);line-height:1.05;font-weight:700;margin:18px 0 6px}
+.hero .en-name{font-size:clamp(1rem,2vw,1.3rem);color:var(--muted)}
+.hero .slogan{font-size:clamp(1.25rem,2.6vw,1.8rem);font-weight:600;margin:18px 0 14px}
+.hero p.lead{color:var(--muted);max-width:600px;font-size:1.05rem}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero-card{background:var(--panel);border:1px solid var(--line2);border-radius:26px;padding:22px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow)}
+.hero-card .hc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:.88rem;color:var(--muted)}
+.mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mini-stat{padding:12px;border-radius:14px;background:rgba(5,9,25,.6);border:1px solid var(--line)}
+.mini-stat b{font-size:1.5rem;display:block;font-family:'Space Grotesk'}
+.mini-stat span{font-size:.75rem;color:var(--muted)}
+.gauge-wrap{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
+.gauge{position:relative;width:110px;height:110px;flex-shrink:0}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:'Space Grotesk';font-size:1.6rem;font-weight:700}
+.gauge .val small{display:block;font-size:.65rem;color:var(--muted);font-family:'IBM Plex Sans Arabic';font-weight:400}
+.spark{height:70px}
+.demo-note{font-size:.75rem;color:var(--dim);margin-top:12px;display:flex;gap:6px;align-items:flex-start}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}.hero{min-height:auto}}
+
+/* ---------- Sections ---------- */
+section{padding:90px 0;position:relative}
+.sec-head{text-align:center;max-width:720px;margin:0 auto 46px}
+.sec-head .tag{display:inline-flex;gap:6px;align-items:center;color:var(--cyan);font-size:.85rem;font-weight:600;margin-bottom:8px}
+.sec-head h2{font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.25;margin-bottom:10px}
+.sec-head p{color:var(--muted)}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow)}
+.card{padding:22px;transition:.3s}
+.card.hover:hover{border-color:var(--line2);transform:translateY(-4px);box-shadow:0 25px 60px -25px rgba(99,140,255,.45)}
+.ico{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:1.4rem;background:linear-gradient(135deg,rgba(56,189,248,.18),rgba(167,139,250,.18));border:1px solid var(--line2);color:var(--cyan);margin-bottom:14px}
+.grid{display:grid;gap:18px}
+.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+@media (max-width:980px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.g4,.g3,.g2{grid-template-columns:1fr}}
+.card h3{font-size:1.1rem;margin-bottom:6px}
+.card p{color:var(--muted);font-size:.93rem}
+
+.steps{counter-reset:s}
+.step{position:relative;padding-top:30px}
+.step .num{position:absolute;top:18px;left:22px;font-family:'Space Grotesk';font-size:2.6rem;font-weight:700;opacity:.14}
+.connector{height:2px;background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);margin:-6px 10% 26px;opacity:.5}
+
+.riyadh-band{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;padding:30px;margin-top:40px}
+.riyadh-band svg{width:100%;height:auto}
+@media (max-width:820px){.riyadh-band{grid-template-columns:1fr}}
+
+/* ---------- Banner ---------- */
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:14px;border:1px dashed rgba(250,204,21,.4);background:rgba(250,204,21,.06);color:#fde68a;font-size:.86rem;margin-bottom:22px}
+.notice i{font-size:1.1rem;margin-top:1px}
+
+/* ---------- Controls ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:16px;margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+.field label{font-size:.8rem;color:var(--muted)}
+select,input[type=time],input[type=number]{background:rgba(5,9,25,.75);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+select option{background:#0b1230}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--cyan),var(--violet));outline:none;opacity:.9}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--violet);cursor:pointer;box-shadow:0 0 12px rgba(167,139,250,.8)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--violet);cursor:pointer}
+
+.kpi{padding:18px;display:flex;flex-direction:column;gap:4px}
+.kpi .k-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem}
+.kpi .k-top i{font-size:1.2rem}
+.kpi b{font-size:2rem;font-family:'Space Grotesk';line-height:1.2}
+.kpi small{color:var(--dim);font-size:.75rem}
+.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}.c-red{color:var(--red)}.c-cyan{color:var(--cyan)}.c-violet{color:var(--violet)}
+.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
+.dash-grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+@media (max-width:980px){.dash-grid,.dash-grid2{grid-template-columns:1fr}}
+.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap}
+.panel-title h3{font-size:1.02rem;display:flex;align-items:center;gap:8px}
+.panel-title h3 i{color:var(--cyan)}
+.chart-box{position:relative;height:290px}
+.chart-box.sm{height:230px}
+.watch-list{list-style:none;display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+.watch-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(5,9,25,.55);border:1px solid var(--line)}
+.bar-mini{flex:1;height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;max-width:110px}
+.bar-mini span{display:block;height:100%;border-radius:6px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.b-low{background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.b-mid{background:rgba(250,204,21,.12);color:#fde047;border:1px solid rgba(250,204,21,.3)}
+.b-high{background:rgba(239,68,68,.14);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.recs{list-style:none;display:flex;flex-direction:column;gap:10px}
+.recs li{display:flex;gap:10px;align-items:flex-start;font-size:.92rem;color:#cdd5f5}
+.recs li i{color:var(--violet);margin-top:3px}
+
+/* ---------- Map ---------- */
+.map-wrap{display:grid;grid-template-columns:1fr 300px;gap:18px}
+@media (max-width:980px){.map-wrap{grid-template-columns:1fr}}
+#map,#mapFallback{height:540px;border-radius:var(--radius);border:1px solid var(--line2);overflow:hidden;background:#0a0f22}
+@media (max-width:640px){#map,#mapFallback{height:420px}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 14px;border-radius:999px;border:1px solid var(--line2);background:rgba(5,9,25,.6);cursor:pointer;font-size:.85rem;transition:.2s;display:inline-flex;gap:6px;align-items:center}
+.chip .sw{width:10px;height:10px;border-radius:50%}
+.chip.on{background:rgba(56,189,248,.14);border-color:var(--cyan)}
+.legend-row{display:flex;align-items:center;gap:10px;font-size:.88rem;margin:8px 0;color:#cdd5f5}
+.legend-row .sw{width:14px;height:14px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.leaflet-container{font-family:'IBM Plex Sans Arabic',sans-serif;background:#0a0f22}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0e1636;color:var(--text);border:1px solid var(--line2)}
+.leaflet-popup-content{margin:14px 16px;direction:rtl;text-align:right;min-width:220px}
+.leaflet-popup-content h4{font-size:1rem;margin-bottom:6px}
+.leaflet-popup-content p{margin:4px 0!important;font-size:.85rem;color:#c3cbea}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+.leaflet-control-attribution{background:rgba(5,7,15,.7)!important;color:var(--dim)!important}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.map-tag{position:absolute;z-index:500;top:12px;right:12px;background:rgba(5,7,15,.8);border:1px solid var(--line2);padding:6px 12px;border-radius:10px;font-size:.78rem;color:#fde68a}
+#mapFallback{position:relative;display:none;background:radial-gradient(circle at 50% 50%,#101a3c,#070b1a)}
+.fb-dot{position:absolute;transform:translate(-50%,-50%);border-radius:50%;cursor:pointer;display:grid;place-items:center;transition:.2s}
+.fb-dot:hover{transform:translate(-50%,-50%) scale(1.12)}
+.fb-label{position:absolute;transform:translate(-50%,14px);font-size:.75rem;color:#cdd5f5;white-space:nowrap;pointer-events:none}
+.zone-detail{min-height:150px}
+.zone-detail h4{font-size:1.1rem;margin-bottom:6px}
+.zone-detail p{font-size:.88rem;color:var(--muted);margin:4px 0}
+
+/* ---------- Predict ---------- */
+.predict-grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+@media (max-width:980px){.predict-grid{grid-template-columns:1fr}}
+.form-col{display:flex;flex-direction:column;gap:14px}
+.result-empty{display:grid;place-items:center;text-align:center;min-height:320px;color:var(--dim)}
+.result-empty i{font-size:3rem;color:var(--line2);display:block;margin-bottom:8px}
+.res-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.res-level{font-size:1.6rem;font-weight:700}
+.res-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+@media (max-width:640px){.res-meta{grid-template-columns:1fr}}
+.res-meta div{padding:12px;border-radius:12px;background:rgba(5,9,25,.55);border:1px solid var(--line)}
+.res-meta small{color:var(--muted);display:block;font-size:.75rem}
+.res-meta b{font-size:1rem}
+.res-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+@media (max-width:640px){.res-cols{grid-template-columns:1fr}}
+.res-cols h4{font-size:.95rem;margin-bottom:8px;color:var(--cyan)}
+.fade-in{animation:fade .5s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.loader{width:40px;height:40px;border-radius:50%;border:3px solid var(--line2);border-top-color:var(--cyan);animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Lab ---------- */
+#lab{background:linear-gradient(180deg,transparent,rgba(13,22,51,.5),transparent)}
+.lab-grid{display:grid;grid-template-columns:380px 1fr;gap:18px}
+@media (max-width:1080px){.lab-grid{grid-template-columns:1fr}}
+.ctrl{padding:14px;border-radius:14px;background:rgba(5,9,25,.5);border:1px solid var(--line);margin-bottom:12px}
+.ctrl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:.92rem;font-weight:600;gap:8px}
+.ctrl-head i{color:var(--violet);margin-left:6px}
+.ctrl-val{font-family:'Space Grotesk';color:var(--cyan);font-size:.9rem;white-space:nowrap}
+.ctrl .row{display:flex;gap:10px}
+.ctrl .row .field{min-width:0}
+.ctrl-hint{font-size:.75rem;color:var(--dim);margin-top:6px}
+.cmp-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media (max-width:640px){.cmp-cards{grid-template-columns:1fr}}
+.cmp-card{padding:16px;border-radius:16px;border:1px solid var(--line)}
+.cmp-card.orig{background:rgba(148,163,184,.06)}
+.cmp-card.new{background:linear-gradient(135deg,rgba(56,189,248,.09),rgba(167,139,250,.09));border-color:var(--line2)}
+.cmp-card h4{font-size:.9rem;color:var(--muted);margin-bottom:6px;display:flex;gap:6px;align-items:center}
+.cmp-card .big{font-size:1.6rem;font-weight:700;font-family:'Space Grotesk'}
+.deltas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+@media (max-width:760px){.deltas{grid-template-columns:1fr 1fr}}
+.delta{padding:12px;border-radius:14px;background:rgba(5,9,25,.55);border:1px solid var(--line);text-align:center}
+.delta small{display:block;color:var(--muted);font-size:.75rem}
+.delta b{font-family:'Space Grotesk';font-size:1.3rem}
+.up{color:var(--red)}.down{color:var(--green)}.flat{color:var(--muted)}
+.explain{padding:16px;border-radius:14px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.25);font-size:.93rem;color:#d8dcf7}
+.saved-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+
+/* ---------- Solutions ---------- */
+.sol .why{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.86rem;color:#c3cbea}
+.sol .why b{color:var(--cyan);font-weight:600}
+.sol .actions{margin-top:14px}
+
+/* ---------- Reports ---------- */
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500;font-size:.8rem;background:rgba(5,9,25,.4)}
+.table-wrap{overflow-x:auto}
+.report-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- About ---------- */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:820px){.about-grid{grid-template-columns:1fr}}
+.about-grid ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.about-grid li{display:flex;gap:8px;color:#cdd5f5;font-size:.93rem}
+.about-grid li i{color:var(--cyan);margin-top:3px}
+.disclaimer{margin-top:22px;padding:20px;border-radius:var(--radius);border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);display:flex;gap:14px}
+.disclaimer i{font-size:1.6rem;color:#f87171}
+
+footer{border-top:1px solid var(--line);padding:30px 0;color:var(--dim);font-size:.85rem}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:#0f1838;border:1px solid var(--line2);padding:12px 20px;border-radius:14px;z-index:3000;transition:.35s;display:flex;gap:8px;align-items:center;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast i{color:var(--cyan)}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#05070f}::-webkit-scrollbar-thumb{background:#1c2a55;border-radius:10px}
+
+/* ---------- Print ---------- */
+@media print{
+  body{background:#fff!important;color:#000}
+  header,.hero,#how,#features,#dashboard,#map-sec,#predict,#lab,#solutions,#about,footer,.report-actions,.toast,#netCanvas{display:none!important}
+  #reports{padding:0}
+  .glass{background:#fff!important;border:1px solid #ccc!important;box-shadow:none!important;backdrop-filter:none!important}
+  .sec-head p,.card p,th{color:#333!important}
+  th,td{border-color:#ccc;color:#000}
+  .print-only{display:block!important}
+  .chart-box{height:260px}
+}
+.print-only{display:none}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGO SYMBOL ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg1" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/><stop offset=".55" stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/>
+    </linearGradient>
+    <symbol id="logo" viewBox="0 0 64 64">
+      <rect x="1" y="1" width="62" height="62" rx="18" fill="#0a1024" stroke="url(#lg1)" stroke-opacity=".5"/>
+      <path d="M12 54 C22 44 25 34 32 25" stroke="url(#lg1)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <path d="M52 54 C42 44 39 34 32 25" stroke="url(#lg1)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <path d="M32 25 V9" stroke="url(#lg1)" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M32 54 V40" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity=".8"/>
+      <circle cx="32" cy="25" r="6" fill="#0a1024" stroke="#c4b5fd" stroke-width="2.5"/>
+      <circle cx="32" cy="25" r="2.3" fill="#e9d5ff"/>
+      <circle cx="12" cy="54" r="2.5" fill="#38bdf8"/><circle cx="52" cy="54" r="2.5" fill="#a78bfa"/><circle cx="32" cy="9" r="2.5" fill="#818cf8"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= HEADER ================= -->
+<header>
+  <div class="container nav">
+    <a href="#home" class="brand" aria-label="انسياب - الرئيسية">
+      <svg><use href="#logo"/></svg>
+      <div><b>انسياب</b><small class="en">INSIAB AI</small></div>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#home">الرئيسية</a></li>
+      <li><a href="#dashboard">لوحة التحكم</a></li>
+      <li><a href="#map-sec">الخريطة</a></li>
+      <li><a href="#predict">التنبؤ الذكي</a></li>
+      <li><a href="#lab">ماذا لو؟</a></li>
+      <li><a href="#solutions">الحلول</a></li>
+      <li><a href="#reports">التقارير</a></li>
+      <li><a href="#about">عن المشروع</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn btn-sm" id="resetAll" title="إعادة ضبط التجربة بالكامل"><i class="ri-restart-line"></i><span class="hide-sm">إعادة الضبط</span></button>
+      <button class="btn btn-icon menu-btn" id="menuBtn" aria-label="القائمة" aria-expanded="false"><i class="ri-menu-3-line"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="home">
+  <canvas id="netCanvas" aria-hidden="true"></canvas>
+  <div class="container hero-grid">
+    <div class="reveal">
+      <span class="pill"><span class="dot"></span>منصة ذكية لمدينة الرياض · نسخة تجريبية</span>
+      <h1><span class="grad-text">انسياب</span></h1>
+      <div class="en-name en">INSIAB AI — Smart Traffic Flow Intelligence</div>
+      <div class="slogan">«نتنبأ بالازدحام، ونصنع طريقًا أكثر انسيابًا.»</div>
+      <p class="lead">منصة تحلّل أنماط الحركة المرورية عبر الساعات والأيام، وتقدّر مستويات الازدحام المتوقعة في مناطق الرياض، وتتيح لك اختبار سيناريوهات «ماذا لو؟» قبل اتخاذ القرار — كأداة مساعدة لفهم الازدحام وتجربة الحلول.</p>
+      <div class="hero-cta">
+        <a href="#dashboard" class="btn btn-primary" id="startBtn"><i class="ri-radar-line"></i>ابدأ التحليل</a>
+        <a href="#lab" class="btn" id="simBtn"><i class="ri-flask-line"></i>جرّب المحاكاة</a>
+      </div>
+    </div>
+    <div class="hero-card reveal">
+      <div class="hc-head"><span><i class="ri-pulse-line c-cyan"></i> مؤشرات النموذج التجريبي</span><span id="heroTime" class="en"></span></div>
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" stroke="rgba(255,255,255,.07)" stroke-width="10" fill="none"/>
+            <circle id="gaugeArc" cx="55" cy="55" r="46" stroke="url(#lg1)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289" style="transition:stroke-dashoffset 1.2s ease"/>
+          </svg>
+          <div class="val"><div><span id="heroAvg">0</span>%<small>متوسط المدينة</small></div></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;color:var(--muted)">منحنى الازدحام المقدّر اليوم</div>
+          <div class="spark"><canvas id="heroSpark"></canvas></div>
+        </div>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat"><b class="c-green" id="hLow">0</b><span>منخفض</span></div>
+        <div class="mini-stat"><b class="c-yellow" id="hMid">0</b><span>متوسط</span></div>
+        <div class="mini-stat"><b class="c-red" id="hHigh">0</b><span>مرتفع</span></div>
+      </div>
+      <div class="demo-note"><i class="ri-information-line"></i>القيم مولّدة من نموذج محاكاة تجريبي ببيانات افتراضية، وليست قراءات مرورية حقيقية.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW ================= -->
+<section id="how">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-route-line"></i>طريقة العمل</div>
+      <h2>من البيانات إلى القرار في <span class="grad-text">ثلاث خطوات</span></h2>
+      <p>تدفق واضح يحوّل أنماط الحركة إلى رؤى قابلة للتجربة.</p>
+    </div>
+    <div class="connector"></div>
+    <div class="grid g3 steps">
+      <div class="glass card hover step reveal"><span class="num en">01</span><div class="ico"><i class="ri-database-2-line"></i></div><h3>جمع وتحليل الأنماط</h3><p>تُنظَّم بيانات الحركة حسب المنطقة والساعة واليوم، وتُستخرج أنماط الذروة كخروج الموظفين والطلاب والأنشطة المسائية.</p></div>
+      <div class="glass card hover step reveal"><span class="num en">02</span><div class="ico"><i class="ri-brain-line"></i></div><h3>تقدير الازدحام المتوقع</h3><p>يقدّر النموذج مستوى الضغط المروري لكل منطقة ووقت، ويصنّفه إلى منخفض أو متوسط أو مرتفع مع ذكر العوامل المؤثرة.</p></div>
+      <div class="glass card hover step reveal"><span class="num en">03</span><div class="ico"><i class="ri-flask-line"></i></div><h3>محاكاة الحلول</h3><p>جرّب سيناريوهات مثل تغيير أوقات الخروج أو خفض عدد المركبات، وقارن النتائج قبل التوصية بأي إجراء.</p></div>
+    </div>
+
+    <div class="glass riyadh-band reveal">
+      <div>
+        <div class="tag c-cyan" style="font-size:.85rem;font-weight:600"><i class="ri-building-4-line"></i> الرياض × الطرق الذكية × الذكاء الاصطناعي</div>
+        <h2 style="font-size:1.7rem;margin:8px 0">مدينة تتحرك… وشبكة تفهمها</h2>
+        <p style="color:var(--muted)">تتشابك محاور الرياض الكبرى مع أحيائها السكنية والتجارية والتعليمية. يربط «انسياب» هذه الطبقات الثلاث: <b class="c-cyan">المدينة</b> بمناطقها، و<b class="c-violet">الطرق</b> بمساراتها، و<b style="color:var(--pink)">الذكاء الاصطناعي</b> بقدرته على قراءة الأنماط واستشراف الضغط قبل حدوثه.</p>
+      </div>
+      <svg viewBox="0 0 420 260" role="img" aria-label="رسم توضيحي لشبكة طرق ذكية">
+        <defs><radialGradient id="rg" cx=".5" cy=".5"><stop offset="0" stop-color="#818cf8" stop-opacity=".5"/><stop offset="1" stop-color="#818cf8" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="210" cy="130" r="120" fill="url(#rg)"/>
+        <g stroke="rgba(120,160,255,.25)" stroke-width="1.5" fill="none">
+          <path d="M20 130 H400"/><path d="M210 10 V250"/><path d="M60 30 L360 230"/><path d="M60 230 L360 30"/>
+          <ellipse cx="210" cy="130" rx="150" ry="90"/><ellipse cx="210" cy="130" rx="80" ry="50"/>
+        </g>
+        <g stroke="url(#lg1)" stroke-width="3" fill="none" stroke-linecap="round">
+          <path d="M20 130 H400" stroke-dasharray="14 260"><animate attributeName="stroke-dashoffset" from="274" to="0" dur="4s" repeatCount="indefinite"/></path>
+          <path d="M210 250 V10" stroke-dasharray="14 230"><animate attributeName="stroke-dashoffset" from="244" to="0" dur="3.2s" repeatCount="indefinite"/></path>
+          <path d="M60 230 L360 30" stroke-dasharray="14 340"><animate attributeName="stroke-dashoffset" from="354" to="0" dur="5s" repeatCount="indefinite"/></path>
+        </g>
+        <g>
+          <circle cx="210" cy="130" r="16" fill="#0a1024" stroke="#c4b5fd" stroke-width="2"/><text x="210" y="135" text-anchor="middle" font-size="12" fill="#e9d5ff" font-family="Space Grotesk">AI</text>
+          <circle cx="110" cy="96" r="6" fill="#22c55e"/><circle cx="320" cy="90" r="6" fill="#facc15"/><circle cx="300" cy="175" r="6" fill="#ef4444"/><circle cx="125" cy="180" r="6" fill="#22c55e"/><circle cx="210" cy="45" r="6" fill="#facc15"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section id="features">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-sparkling-2-line"></i>المميزات</div>
+      <h2>منظومة متكاملة لفهم <span class="grad-text">الحركة المرورية</span></h2>
+    </div>
+    <div class="grid g4">
+      <a href="#dashboard" class="glass card hover reveal"><div class="ico"><i class="ri-dashboard-3-line"></i></div><h3>لوحة تحكم ذكية</h3><p>مؤشرات لحظية للنموذج، ومرشحات حسب المنطقة واليوم والساعة.</p></a>
+      <a href="#map-sec" class="glass card hover reveal"><div class="ico"><i class="ri-map-pin-range-line"></i></div><h3>خريطة تفاعلية</h3><p>مناطق ملوّنة حسب مستوى الازدحام المقدّر مع تفاصيل كل منطقة.</p></a>
+      <a href="#predict" class="glass card hover reveal"><div class="ico"><i class="ri-time-line"></i></div><h3>التنبؤ الذكي</h3><p>اختر المنطقة والوقت لتعرف المستوى المتوقع وأفضل وقت للانطلاق.</p></a>
+      <a href="#lab" class="glass card hover reveal"><div class="ico"><i class="ri-flask-line"></i></div><h3>مختبر «ماذا لو؟»</h3><p>محاكاة سيناريوهات وقرارات ومقارنتها قبل التطبيق.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DASHBOARD ================= -->
+<section id="dashboard">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-dashboard-3-line"></i>لوحة التحكم الذكية</div>
+      <h2>نظرة شاملة على <span class="grad-text">حالة المدينة</span></h2>
+      <p>اختر المنطقة واليوم والساعة لتحديث جميع المؤشرات والرسوم.</p>
+    </div>
+    <div class="notice"><i class="ri-error-warning-line"></i><div>جميع الأرقام في هذه اللوحة <b>بيانات تجريبية مولّدة بنموذج محاكاة</b> لأغراض العرض، ولا تمثّل قراءات مرورية فعلية لأي منطقة أو طريق في الرياض.</div></div>
+
+    <div class="glass filters">
+      <div class="field"><label for="fZone">المنطقة</label><select id="fZone"></select></div>
+      <div class="field"><label for="fDay">اليوم</label><select id="fDay"></select></div>
+      <div class="field"><label for="fHour">الساعة</label><select id="fHour"></select></div>
+      <button class="btn" id="refreshData"><i class="ri-refresh-line"></i>تحديث بيانات النموذج</button>
+    </div>
+
+    <div class="grid g4">
+      <div class="glass kpi"><div class="k-top">المناطق المتابَعة<i class="ri-map-2-line c-cyan"></i></div><b id="kZones">0</b><small>منطقة تجريبية</small></div>
+      <div class="glass kpi"><div class="k-top">ازدحام منخفض<i class="ri-checkbox-circle-line c-green"></i></div><b class="c-green" id="kLow">0</b><small>في الوقت المحدد</small></div>
+      <div class="glass kpi"><div class="k-top">ازدحام متوسط<i class="ri-alert-line c-yellow"></i></div><b class="c-yellow" id="kMid">0</b><small>في الوقت المحدد</small></div>
+      <div class="glass kpi"><div class="k-top">ازدحام مرتفع<i class="ri-fire-line c-red"></i></div><b class="c-red" id="kHigh">0</b><small>في الوقت المحدد</small></div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="glass card">
+        <div class="panel-title"><h3><i class="ri-line-chart-line"></i>تغيّر الازدحام خلال اليوم</h3><span class="badge" id="curLevelBadge">—</span></div>
+        <div class="chart-box"><canvas id="dayChart"></canvas></div>
+      </div>
+      <div class="glass card">
+        <div class="panel-title"><h3><i class="ri-eye-line"></i>مناطق تحتاج متابعة</h3></div>
+        <ul class="watch-list" id="watchList"></ul>
+      </div>
+    </div>
+    <div class="dash-grid2">
+      <div class="glass card">
+        <div class="panel-title"><h3><i class="ri-bar-chart-grouped-line"></i>الذروة مقابل الفترات الأقل ازدحامًا</h3></div>
+        <div class="chart-box sm"><canvas id="peakChart"></canvas></div>
+      </div>
+      <div class="glass card">
+        <div class="panel-title"><h3><i class="ri-lightbulb-flash-line"></i>توصيات مختصرة</h3><span class="badge b-mid" id="expectedTxt">—</span></div>
+        <ul class="recs" id="dashRecs"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MAP ================= -->
+<section id="map-sec">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-map-pin-range-line"></i>الخريطة التفاعلية</div>
+      <h2>خريطة <span class="grad-text">الرياض</span> الذكية</h2>
+      <p>اضغط على أي منطقة لعرض المستوى المقدّر والفترة الزمنية والعوامل المؤثرة.</p>
+    </div>
+    <div class="map-wrap">
+      <div style="position:relative">
+        <div class="map-tag"><i class="ri-flask-line"></i> مناطق ومستويات افتراضية للعرض</div>
+        <div id="map" role="application" aria-label="خريطة الرياض التفاعلية"></div>
+        <div id="mapFallback" aria-label="مخطط بديل للمناطق"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="glass card">
+          <div class="panel-title"><h3><i class="ri-equalizer-line"></i>عرض المناطق</h3></div>
+          <div class="row" style="display:flex;gap:8px;margin-bottom:12px">
+            <div class="field" style="min-width:0"><label for="mDay">اليوم</label><select id="mDay"></select></div>
+            <div class="field" style="min-width:0"><label for="mHour">الساعة</label><select id="mHour"></select></div>
+          </div>
+          <div class="chips" id="levelChips">
+            <button class="chip on" data-l="all">الكل</button>
+            <button class="chip" data-l="low"><span class="sw" style="background:var(--green)"></span>منخفض</button>
+            <button class="chip" data-l="mid"><span class="sw" style="background:var(--yellow)"></span>متوسط</button>
+            <button class="chip" data-l="high"><span class="sw" style="background:var(--red)"></span>مرتفع</button>
+          </div>
+        </div>
+        <div class="glass card">
+          <div class="panel-title"><h3><i class="ri-palette-line"></i>مفتاح الألوان</h3></div>
+          <div class="legend-row"><span class="sw" style="background:var(--green);color:var(--green)"></span>منخفض (أقل من 40%)</div>
+          <div class="legend-row"><span class="sw" style="background:var(--yellow);color:var(--yellow)"></span>متوسط (40% – 69%)</div>
+          <div class="legend-row"><span class="sw" style="background:var(--red);color:var(--red)"></span>مرتفع (70% فأكثر)</div>
+        </div>
+        <div class="glass card zone-detail" id="zoneDetail"><p style="color:var(--dim)"><i class="ri-cursor-line"></i> اختر منطقة من الخريطة لعرض تفاصيلها هنا.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PREDICT ================= -->
+<section id="predict">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-brain-line"></i>التنبؤ الذكي</div>
+      <h2>اعرف الازدحام <span class="grad-text">قبل أن تنطلق</span></h2>
+      <p>تقدير تجريبي مبني على نموذج محاكاة، يتغيّر بحسب المنطقة واليوم ووقت الانطلاق.</p>
+    </div>
+    <div class="predict-grid">
+      <div class="glass card form-col">
+        <div class="field"><label for="pZone">1. المنطقة</label><select id="pZone"></select></div>
+        <div class="field"><label for="pDay">2. اليوم</label><select id="pDay"></select></div>
+        <div class="field"><label for="pTime">3. وقت الانطلاق</label><input type="time" id="pTime" value="07:30" step="900"></div>
+        <button class="btn btn-primary" id="analyzeBtn" style="justify-content:center"><i class="ri-cpu-line"></i>حلّل الازدحام</button>
+        <div class="demo-note"><i class="ri-information-line"></i>هذه محاكاة توضيحية وليست نموذج ذكاء اصطناعي مدرّبًا على بيانات مرور حقيقية؛ لا تُعتمد النتائج كتنبؤ دقيق.</div>
+      </div>
+      <div class="glass card" id="predictResult">
+        <div class="result-empty"><div><i class="ri-radar-line"></i>اختر المدخلات ثم اضغط «حلّل الازدحام» لعرض النتيجة.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LAB ================= -->
+<section id="lab">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-flask-line"></i>الميزة الأساسية</div>
+      <h2>مختبر <span class="grad-text">«ماذا لو؟»</span></h2>
+      <p>عدّل السيناريو وشاهد كيف يتغيّر منحنى الازدحام فورًا مقارنة بالوضع الأصلي.</p>
+    </div>
+    <div class="notice"><i class="ri-error-warning-line"></i><div>النتائج <b>تقديرات محاكاة</b> من نموذج مبسّط ببيانات افتراضية، وليست ضمانًا لتأثير أي قرار على الحركة المرورية الواقعية.</div></div>
+    <div class="lab-grid">
+      <div class="glass card">
+        <div class="panel-title"><h3><i class="ri-sound-module-line"></i>عناصر التحكم</h3><button class="btn btn-sm" id="labReset"><i class="ri-arrow-go-back-line"></i>الوضع الأصلي</button></div>
+        <div class="ctrl">
+          <div class="row">
+            <div class="field"><label for="sZone">نطاق المحاكاة</label><select id="sZone"></select></div>
+            <div class="field"><label for="sDay">اليوم</label><select id="sDay"></select></div>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><span><i class="ri-briefcase-4-line"></i>وقت خروج الموظفين</span><span class="ctrl-val" id="vEmp">4:00 م</span></div>
+          <input type="range" id="sEmp" min="-120" max="120" step="15" value="0" aria-label="إزاحة وقت خروج الموظفين بالدقائق">
+          <div class="ctrl-hint">إزاحة من −ساعتين إلى +ساعتين عن الوقت المعتاد.</div>
+          <div class="ctrl-head" style="margin-top:12px"><span><i class="ri-shuffle-line"></i>توزيع أوقات الخروج (مرونة)</span><span class="ctrl-val" id="vSpread">0%</span></div>
+          <input type="range" id="sSpread" min="0" max="100" step="10" value="0" aria-label="نسبة توزيع خروج الموظفين">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><span><i class="ri-graduation-cap-line"></i>وقت خروج الطلاب</span><span class="ctrl-val" id="vStu">1:15 م</span></div>
+          <input type="range" id="sStu" min="-90" max="90" step="15" value="0" aria-label="إزاحة وقت خروج الطلاب بالدقائق">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><span><i class="ri-car-line"></i>خفض عدد السيارات</span><span class="ctrl-val" id="vRed">0%</span></div>
+          <input type="range" id="sRed" min="0" max="40" step="5" value="0" aria-label="نسبة خفض السيارات">
+          <div class="row" style="margin-top:10px">
+            <div class="field"><label for="sRedFrom">من الساعة</label><select id="sRedFrom"></select></div>
+            <div class="field"><label for="sRedTo">إلى الساعة</label><select id="sRedTo"></select></div>
+          </div>
+          <div class="ctrl-hint">مثل: مشاركة السيارات أو النقل العام أو العمل عن بُعد.</div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><span><i class="ri-calendar-event-line"></i>فعالية كبيرة</span><span class="ctrl-val" id="vEv">بلا</span></div>
+          <div class="row">
+            <div class="field"><label for="sEvZone">المنطقة</label><select id="sEvZone"></select></div>
+            <div class="field"><label for="sEvHour">البداية</label><select id="sEvHour"></select></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label for="sEvSize">حجم الفعالية</label>
+            <select id="sEvSize"><option value="0">لا توجد فعالية</option><option value="18">متوسطة</option><option value="30">كبيرة</option><option value="42">ضخمة</option></select></div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-head"><span><i class="ri-git-compare-line"></i>مقارنة سيناريوهين</span></div>
+          <div class="saved-row">
+            <button class="btn btn-sm" id="saveA"><i class="ri-save-line"></i>حفظ كسيناريو أ</button>
+            <button class="btn btn-sm" id="saveB"><i class="ri-save-line"></i>حفظ كسيناريو ب</button>
+            <button class="btn btn-sm" id="clearAB"><i class="ri-delete-back-2-line"></i>مسح</button>
+          </div>
+          <div class="ctrl-hint" id="abStatus">لم يُحفظ أي سيناريو بعد.</div>
+        </div>
+        <button class="btn btn-primary" id="logScenario" style="width:100%;justify-content:center"><i class="ri-file-add-line"></i>تسجيل السيناريو في التقارير</button>
+      </div>
+
+      <div class="glass card">
+        <div class="cmp-cards">
+          <div class="cmp-card orig"><h4><i class="ri-history-line"></i>السيناريو الأصلي</h4><div class="big" id="oPeak">—</div><div id="oTxt" style="font-size:.85rem;color:var(--muted)"></div></div>
+          <div class="cmp-card new"><h4><i class="ri-magic-line c-violet"></i>السيناريو الجديد</h4><div class="big" id="nPeak">—</div><div id="nTxt" style="font-size:.85rem;color:var(--muted)"></div></div>
+        </div>
+        <div class="chart-box"><canvas id="labChart"></canvas></div>
+        <div class="deltas">
+          <div class="delta"><small>تغيّر ذروة الازدحام</small><b id="dPeak">0</b></div>
+          <div class="delta"><small>تغيّر المتوسط اليومي</small><b id="dAvg">0</b></div>
+          <div class="delta"><small>ساعات الازدحام المرتفع</small><b id="dHigh">0</b></div>
+          <div class="delta"><small>ساعة الذروة</small><b id="dHour">—</b></div>
+        </div>
+        <div class="explain" id="labExplain"></div>
+        <h4 style="margin:16px 0 8px;font-size:.95rem;color:var(--cyan)"><i class="ri-lightbulb-line"></i> توصيات مستخلصة من السيناريو</h4>
+        <ul class="recs" id="labRecs"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SOLUTIONS ================= -->
+<section id="solutions">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-lightbulb-flash-line"></i>مركز الحلول الذكية</div>
+      <h2>حلول <span class="grad-text">انسياب</span></h2>
+      <p>توصيات عملية محتملة، لكل منها سبب وهدف — يمكن اختبار أغلبها في مختبر المحاكاة.</p>
+    </div>
+    <div class="grid g3" id="solGrid"></div>
+  </div>
+</section>
+
+<!-- ================= REPORTS ================= -->
+<section id="reports">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-file-chart-line"></i>التقارير والإحصائيات</div>
+      <h2>تقرير <span class="grad-text">النموذج التجريبي</span></h2>
+      <p>ملخص منظم جاهز للعرض والتصدير والطباعة.</p>
+    </div>
+    <div class="print-only" style="margin-bottom:16px"><h2>تقرير انسياب | INSIAB AI</h2><p>بيانات تجريبية مولّدة بنموذج محاكاة — <span id="printDate"></span></p></div>
+    <div class="glass filters" style="justify-content:space-between">
+      <div class="field" style="max-width:240px"><label for="rDay">يوم التقرير</label><select id="rDay"></select></div>
+      <div class="report-actions">
+        <button class="btn" id="csvBtn"><i class="ri-file-excel-2-line"></i>تصدير CSV</button>
+        <button class="btn" id="printBtn"><i class="ri-printer-line"></i>طباعة / حفظ PDF</button>
+      </div>
+    </div>
+    <div class="dash-grid2" style="margin-top:0">
+      <div class="glass card"><div class="panel-title"><h3><i class="ri-bar-chart-2-line"></i>متوسط الازدحام حسب الساعة</h3></div><div class="chart-box sm"><canvas id="hourChart"></canvas></div></div>
+      <div class="glass card"><div class="panel-title"><h3><i class="ri-pie-chart-2-line"></i>توزيع ساعات المناطق حسب المستوى</h3></div><div class="chart-box sm"><canvas id="mixChart"></canvas></div></div>
+    </div>
+    <div class="glass card" style="margin-top:18px">
+      <div class="panel-title"><h3><i class="ri-table-line"></i>إحصائيات المناطق التجريبية</h3></div>
+      <div class="table-wrap"><table><thead><tr><th>المنطقة</th><th>الطابع</th><th>المتوسط</th><th>الذروة</th><th>ساعة الذروة</th><th>ساعات مرتفعة</th><th>المستوى العام</th></tr></thead><tbody id="zoneTable"></tbody></table></div>
+    </div>
+    <div class="glass card" style="margin-top:18px">
+      <div class="panel-title"><h3><i class="ri-flask-line"></i>ملخص السيناريوهات المجرّبة</h3><button class="btn btn-sm" id="clearLog"><i class="ri-delete-bin-6-line"></i>مسح السجل</button></div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>الوقت</th><th>النطاق</th><th>التعديلات</th><th>الذروة (أصلي ← جديد)</th><th>تغيّر المتوسط</th></tr></thead><tbody id="logTable"></tbody></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section id="about">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="tag"><i class="ri-information-line"></i>عن المشروع</div>
+      <h2>ما هو <span class="grad-text">انسياب</span>؟</h2>
+      <p>منصة تجريبية تساعد على فهم الازدحام المروري في الرياض واستكشاف الحلول عبر تحليل البيانات والمحاكاة.</p>
+    </div>
+    <div class="about-grid">
+      <div class="glass card"><div class="ico"><i class="ri-alarm-warning-line"></i></div><h3>المشكلة</h3><p>تشهد الرياض نموًا سكانيًا واقتصاديًا متسارعًا يزيد الضغط على الطرق، خاصة عند تزامن خروج الموظفين والطلاب وأوقات الأنشطة المسائية والفعاليات، ما يرفع زمن الرحلات ويؤثر في جودة الحياة.</p></div>
+      <div class="glass card"><div class="ico"><i class="ri-focus-3-line"></i></div><h3>الأهداف</h3>
+        <ul><li><i class="ri-check-line"></i>فهم أنماط الازدحام حسب المكان والزمان.</li><li><i class="ri-check-line"></i>تقدير المناطق والأوقات المتوقع ارتفاع الضغط فيها.</li><li><i class="ri-check-line"></i>تمكين متخذ القرار من محاكاة الحلول قبل تطبيقها.</li><li><i class="ri-check-line"></i>تقديم توصيات واضحة قابلة للنقاش.</li></ul></div>
+      <div class="glass card"><div class="ico"><i class="ri-settings-5-line"></i></div><h3>طريقة عمل النظام</h3><p>في هذه النسخة يولّد نموذج رياضي مبسّط منحنى ازدحام لكل منطقة اعتمادًا على مكوّنات: ذروة الصباح، خروج الطلاب، خروج الموظفين، النشاط المسائي، وطابع المنطقة (تجاري، تعليمي، سكني…)، مع اختلاف أيام الأسبوع. ويعيد مختبر المحاكاة حساب المنحنى بعد تعديل هذه المكوّنات.</p></div>
+      <div class="glass card"><div class="ico"><i class="ri-brain-line"></i></div><h3>دور البيانات والذكاء الاصطناعي</h3><p>في المرحلة التالية يمكن ربط المنصة ببيانات حقيقية (عدّادات المركبات، أزمنة الرحلات، التقويم الدراسي والفعاليات) وتدريب نماذج تعلّم آلي للسلاسل الزمنية لتحسين دقة التقدير، مع الإبقاء على المحاكاة كأداة لدعم القرار.</p></div>
+      <div class="glass card"><div class="ico"><i class="ri-shield-check-line"></i></div><h3>التحديات والقيود</h3>
+        <ul><li><i class="ri-subtract-line"></i>البيانات الحالية افتراضية بالكامل ولا تعكس الواقع.</li><li><i class="ri-subtract-line"></i>النموذج مبسّط ولا يحاكي سلوك السائقين أو الشبكة الفعلية للطرق.</li><li><i class="ri-subtract-line"></i>لا يوجد خادم أو تكامل مع مصادر بيانات خارجية في هذه النسخة.</li><li><i class="ri-subtract-line"></i>الخريطة تعتمد على الاتصال بالإنترنت لتحميل البلاطات.</li></ul></div>
+      <div class="glass card"><div class="ico"><i class="ri-stack-line"></i></div><h3>التقنيات المستخدمة</h3><p>HTML5 وCSS3 وJavaScript في ملف واحد، مع Leaflet للخرائط (بلاطات CARTO/OpenStreetMap)، وChart.js للرسوم البيانية، وRemix Icon للأيقونات، وخط IBM Plex Sans Arabic. يعمل دون خادم خلفي ودون أي مفاتيح API.</p></div>
+    </div>
+    <div class="disclaimer"><i class="ri-scales-3-line"></i><div><b>تنويه مهم:</b> «انسياب» نموذج مساعد لاتخاذ القرار لأغراض التدريب والعرض، وليس بديلًا عن الجهات المرورية المختصة أو بياناتها الرسمية. جميع المستويات والأرقام المعروضة افتراضية.</div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="container foot">
+    <div class="brand"><svg style="width:32px;height:32px"><use href="#logo"/></svg><div><b style="font-size:1rem">انسياب</b><small class="en">INSIAB AI · Prototype v1.0</small></div></div>
+    <div>«نتنبأ بالازدحام، ونصنع طريقًا أكثر انسيابًا.» — نسخة تجريبية ببيانات افتراضية</div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><i class="ri-checkbox-circle-line"></i><span></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   1) DATA — مناطق تجريبية (الإحداثيات تقريبية والأوزان افتراضية)
+   m: ذروة الصباح، s: المدارس، w: خروج الموظفين، e: النشاط المسائي، b: أساس
+   ========================================================= */
+const ZONES = [
+  {id:'olaya',   name:'العليا',     type:'تجاري ومكاتب', lat:24.6950,lng:46.6850,m:58,s:12,w:62,e:42,b:14,f:['كثافة المكاتب والأبراج التجارية','محاور رئيسية تربط شمال المدينة بجنوبها','نشاط تجاري ومطاعم مسائي']},
+  {id:'malaz',   name:'الملز',      type:'سكني وخدمي',   lat:24.6620,lng:46.7330,m:40,s:30,w:40,e:30,b:12,f:['تجمّع مدارس وجهات حكومية','أحياء سكنية كثيفة','مرافق رياضية']},
+  {id:'malqa',   name:'الملقا',     type:'سكني راقٍ',    lat:24.8050,lng:46.6100,m:36,s:28,w:30,e:40,b:9, f:['نمو عمراني متسارع','مقاهٍ ومطاعم مسائية','طرق تغذية محدودة']},
+  {id:'yasmin',  name:'الياسمين',   type:'سكني تعليمي',  lat:24.8250,lng:46.6450,m:42,s:46,w:28,e:26,b:9, f:['تركّز المدارس الخاصة والأهلية','تزامن دخول وخروج الطلاب','مداخل أحياء ضيقة']},
+  {id:'sulay',   name:'السليمانية', type:'تجاري',         lat:24.7030,lng:46.7050,m:44,s:16,w:50,e:46,b:13,f:['مراكز تسوق وأسواق','قرب محاور مكتبية','نشاط مسائي مرتفع']},
+  {id:'hittin',  name:'حطين',       type:'ترفيهي وفعاليات',lat:24.7650,lng:46.6000,m:28,s:18,w:30,e:52,b:9, f:['وجهات ترفيهية ومطاعم','فعاليات موسمية','حركة مسائية وعطل نهاية الأسبوع']},
+  {id:'murabba', name:'المربع',     type:'حكومي وتاريخي', lat:24.6460,lng:46.7110,m:50,s:20,w:48,e:20,b:11,f:['جهات حكومية','معالم ثقافية وزوار','تقاطعات قديمة']},
+  {id:'naseem',  name:'النسيم',     type:'سكني كثيف',     lat:24.7330,lng:46.8250,m:44,s:34,w:36,e:28,b:12,f:['كثافة سكانية عالية','حركة نحو مراكز العمل صباحًا','مدارس حكومية']},
+  {id:'aziziya', name:'العزيزية',   type:'لوجستي وصناعي', lat:24.5920,lng:46.7600,m:46,s:14,w:44,e:18,b:15,f:['حركة شاحنات ونقل','منطقة مستودعات','مخارج طرق إقليمية']},
+  {id:'rawdah',  name:'الروضة',     type:'سكني تجاري',    lat:24.7380,lng:46.7720,m:38,s:30,w:36,e:34,b:10,f:['شوارع تجارية','مدارس متوسطة الكثافة','تقاطعات رئيسية']},
+  {id:'sahafa',  name:'الصحافة',    type:'مكاتب حديثة',   lat:24.7980,lng:46.6420,m:50,s:18,w:54,e:24,b:10,f:['مجمعات أعمال حديثة','قرب محاور سريعة شمالية','مواقف محدودة']},
+  {id:'qurtubah',name:'قرطبة',      type:'سكني جامعي',    lat:24.8120,lng:46.7400,m:40,s:36,w:30,e:22,b:9, f:['قرب جهات تعليمية','حركة طلابية','طرق دائرية']}
+];
+const DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const WEEKEND = [5,6];
+const BASE = {emp:0,spread:0,stu:0,red:0,redFrom:16,redTo:19,evZone:'',evHour:20,evSize:0};
+
+let seed = 1;
+const state = {level:'all', scenarioA:null, scenarioB:null, log:[], selectedZone:null, scenario:{...BASE}};
+
+/* =========================================================
+   2) MODEL — نموذج المحاكاة
+   ========================================================= */
+const gauss = (x,mu,s)=>Math.exp(-((x-mu)**2)/(2*s*s));
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+function noise(id,day,h){ // تذبذب حتمي صغير يتغيّر مع "تحديث البيانات"
+  let s=0; const k=id+'|'+day+'|'+Math.floor(h)+'|'+seed;
+  for(let i=0;i<k.length;i++) s=(s*31+k.charCodeAt(i))%100003;
+  return ((s%1000)/1000-0.5)*7;
+}
+function dist(a,b){return Math.hypot(a.lat-b.lat,(a.lng-b.lng)*0.91)*111;}
+
+function value(z, day, h, sc=BASE){
+  const we = WEEKEND.includes(day), thu = day===4;
+  let traffic;
+  if(!we){
+    const empSpread = 1.1 + sc.spread/100*1.6;            // توزيع الخروج يوسّع المنحنى
+    const empAmp = 1/(1+sc.spread/100*0.55);               // ويخفض قمته
+    traffic = z.m*gauss(h,7.3,1.0) + z.s*0.55*gauss(h,6.7,0.6)
+            + z.s*gauss(h,13.25+sc.stu/60,0.75)
+            + z.w*empAmp*gauss(h,16+sc.emp/60,empSpread)
+            + z.e*(thu?1.25:1)*gauss(h,20.5,2.0);
+  } else {
+    traffic = z.m*0.18*gauss(h,10,2) + z.w*0.25*gauss(h,17,2) + z.e*(day===5?1.35:1.25)*gauss(h,21,2.3);
+  }
+  if(sc.red>0 && h>=sc.redFrom && h<=sc.redTo) traffic *= (1-sc.red/100);
+  if(sc.evZone && sc.evSize>0){
+    const ez = ZONES.find(x=>x.id===sc.evZone);
+    const d = dist(z,ez), w = z.id===ez.id?1:clamp(1-d/9,0,0.45);
+    traffic += sc.evSize*w*(gauss(h,sc.evHour-0.5,0.9)+0.9*gauss(h,sc.evHour+2.5,0.9));
+  }
+  const night = h<5? -6 : 0;
+  return clamp(Math.round(z.b + traffic + noise(z.id,day,h) + night), 3, 98);
+}
+function curve(z,day,sc,step=1){const a=[];for(let h=0;h<24;h+=step)a.push(value(z,day,h,sc));return a;}
+function cityCurve(day,sc,zid){
+  if(zid && zid!=='all') return curve(ZONES.find(z=>z.id===zid),day,sc);
+  const c = new Array(24).fill(0);
+  ZONES.forEach(z=>curve(z,day,sc).forEach((v,i)=>c[i]+=v));
+  return c.map(v=>Math.round(v/ZONES.length));
+}
+const levelOf = v => v>=70?'high':v>=40?'mid':'low';
+const LV = {low:{t:'منخفض',c:'#22c55e',b:'b-low'},mid:{t:'متوسط',c:'#facc15',b:'b-mid'},high:{t:'مرتفع',c:'#ef4444',b:'b-high'}};
+const badge = v => `<span class="badge ${LV[levelOf(v)].b}">${LV[levelOf(v)].t} · ${v}%</span>`;
+function hourLabel(h){ h=((h%24)+24)%24; const hh=Math.floor(h), mm=Math.round((h-hh)*60); const p=hh<12?'ص':'م'; let d=hh%12; if(d===0)d=12; return `${d}:${String(mm).padStart(2,'0')} ${p}`; }
+function hourShort(h){const p=h<12?'ص':'م';let d=h%12;if(d===0)d=12;return d+p;}
+function windowAround(z,day,h){ // الفترة المتصلة التي يبقى فيها المستوى نفسه
+  const lv = levelOf(value(z,day,h)); let a=h,b=h;
+  while(a>0 && levelOf(value(z,day,a-0.5))===lv && h-a<6) a-=0.5;
+  while(b<23.5 && levelOf(value(z,day,b+0.5))===lv && b-h<6) b+=0.5;
+  return `${hourLabel(a)} – ${hourLabel(b+0.5)}`;
+}
+
+/* =========================================================
+   3) HELPERS
+   ========================================================= */
+const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
+function fill(sel, items, val){ const el=$(sel); el.innerHTML=items.map(([v,t])=>`<option value="${v}">${t}</option>`).join(''); if(val!==undefined) el.value=val; }
+function toast(msg,icon='ri-checkbox-circle-line'){const t=$('#toast');t.querySelector('span').textContent=msg;t.querySelector('i').className=icon;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem('insiab_'+k));}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem('insiab_'+k,JSON.stringify(v));}catch(e){}},
+  clear(){try{Object.keys(localStorage).filter(k=>k.startsWith('insiab_')).forEach(k=>localStorage.removeItem(k));}catch(e){}}
+};
+const today = (()=>{const d=new Date().getDay();return d;})(); // JS: 0=الأحد يطابق ترتيب DAYS
+const nowHour = new Date().getHours();
+const HOURS = [...Array(24).keys()].map(h=>[h,hourLabel(h)]);
+const DAY_OPTS = DAYS.map((d,i)=>[i,d]);
+const ZONE_OPTS = ZONES.map(z=>[z.id,z.name]);
+
+const hasChart = typeof Chart!=='undefined';
+if(hasChart){
+  Chart.defaults.font.family="'IBM Plex Sans Arabic',sans-serif";
+  Chart.defaults.color='#93a0c8';
+  Chart.defaults.borderColor='rgba(120,160,255,.10)';
+  Chart.defaults.plugins.tooltip.rtl=true;
+  Chart.defaults.plugins.tooltip.backgroundColor='#0e1636';
+  Chart.defaults.plugins.tooltip.borderColor='rgba(120,160,255,.3)';
+  Chart.defaults.plugins.tooltip.borderWidth=1;
+  Chart.defaults.plugins.tooltip.padding=10;
+  Chart.defaults.plugins.legend.rtl=true;
+  Chart.defaults.plugins.legend.labels.usePointStyle=true;
+}
+const charts={};
+function chartFallback(id){const c=document.getElementById(id);if(c)c.parentElement.innerHTML='<div class="result-empty"><div><i class="ri-wifi-off-line"></i>تعذّر تحميل مكتبة الرسوم البيانية. تحقّق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.</div></div>';}
+function makeChart(id,cfg){ if(!hasChart){chartFallback(id);return null;} if(charts[id]){charts[id].destroy();} const ctx=document.getElementById(id); if(!ctx) return null; charts[id]=new Chart(ctx,cfg); return charts[id]; }
+function gradFill(ctx,c1,c2){const g=ctx.createLinearGradient(0,0,0,ctx.canvas.height||300);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;}
+const hourLabels = [...Array(24).keys()].map(hourShort);
+
+/* =========================================================
+   4) HERO
+   ========================================================= */
+function renderHero(){
+  const c = cityCurve(today,BASE);
+  const cur = c[nowHour];
+  $('#heroAvg').textContent=cur;
+  $('#gaugeArc').style.strokeDashoffset = 289 - 289*cur/100;
+  $('#heroTime').textContent = `${DAYS[today]} · ${hourLabel(nowHour)}`;
+  let l=0,m=0,hi=0; ZONES.forEach(z=>{const lv=levelOf(value(z,today,nowHour));lv==='low'?l++:lv==='mid'?m++:hi++;});
+  $('#hLow').textContent=l;$('#hMid').textContent=m;$('#hHigh').textContent=hi;
+  makeChart('heroSpark',{type:'line',data:{labels:hourLabels,datasets:[{data:c,borderColor:'#818cf8',borderWidth:2,tension:.4,pointRadius:c.map((_,i)=>i===nowHour?4:0),pointBackgroundColor:'#38bdf8',fill:true,backgroundColor:'rgba(129,140,248,.12)'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.raw+'%'}}},scales:{x:{display:false},y:{display:false,min:0,max:100}}}});
+}
+
+/* Network background canvas */
+function initCanvas(){
+  const cv=$('#netCanvas'), ctx=cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W,H,nodes=[],edges=[],cars=[],raf;
+  function build(){
+    const dpr=Math.min(devicePixelRatio||1,2); W=cv.clientWidth;H=cv.clientHeight; cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    nodes=[];edges=[];cars=[];
+    const cols=Math.max(4,Math.round(W/170)), rows=Math.max(3,Math.round(H/150));
+    for(let r=0;r<=rows;r++)for(let c=0;c<=cols;c++){nodes.push({x:c*W/cols+(Math.sin(r*7+c*3)*30),y:r*H/rows+(Math.cos(c*5+r)*26)});}
+    const idx=(r,c)=>r*(cols+1)+c;
+    for(let r=0;r<=rows;r++)for(let c=0;c<=cols;c++){ if(c<cols)edges.push([idx(r,c),idx(r,c+1)]); if(r<rows)edges.push([idx(r,c),idx(r+1,c)]); if(r<rows&&c<cols&&(r+c)%3===0)edges.push([idx(r,c),idx(r+1,c+1)]); }
+    const n=Math.min(46,Math.round(W*H/26000));
+    for(let i=0;i<n;i++)cars.push({e:Math.floor(Math.random()*edges.length),t:Math.random(),s:.0015+Math.random()*.004,c:Math.random()<.5?'56,189,248':'167,139,250'});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.lineWidth=1; ctx.strokeStyle='rgba(120,160,255,.09)';
+    ctx.beginPath(); edges.forEach(([a,b])=>{ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);}); ctx.stroke();
+    ctx.fillStyle='rgba(129,140,248,.35)'; nodes.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,1.6,0,7);ctx.fill();});
+    cars.forEach(k=>{
+      const [a,b]=edges[k.e], A=nodes[a], B=nodes[b];
+      const x=A.x+(B.x-A.x)*k.t, y=A.y+(B.y-A.y)*k.t;
+      const tx=A.x+(B.x-A.x)*Math.max(0,k.t-.12), ty=A.y+(B.y-A.y)*Math.max(0,k.t-.12);
+      const g=ctx.createLinearGradient(tx,ty,x,y); g.addColorStop(0,`rgba(${k.c},0)`); g.addColorStop(1,`rgba(${k.c},.9)`);
+      ctx.strokeStyle=g; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(x,y); ctx.stroke();
+      if(!reduce){k.t+=k.s; if(k.t>=1){k.t=0; const opts=edges.map((e,i)=>e[0]===b?i:-1).filter(i=>i>=0); k.e=opts.length?opts[Math.floor(Math.random()*opts.length)]:Math.floor(Math.random()*edges.length);}}
+    });
+    if(!reduce) raf=requestAnimationFrame(draw);
+  }
+  build(); draw();
+  let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{cancelAnimationFrame(raf);build();draw();},200);});
+  document.addEventListener('visibilitychange',()=>{ if(reduce)return; if(document.hidden)cancelAnimationFrame(raf); else {cancelAnimationFrame(raf);draw();} });
+}
+
+/* =========================================================
+   5) DASHBOARD
+   ========================================================= */
+function dashRecommendations(zid,day,h,v,sorted){
+  const recs=[]; const we=WEEKEND.includes(day);
+  if(v>=70) recs.push(`المستوى المقدّر مرتفع عند ${hourLabel(h)}؛ يُنصح بتأجيل الرحلات غير الضرورية ساعة على الأقل.`);
+  else if(v>=40) recs.push(`الضغط متوسط عند ${hourLabel(h)}؛ الانطلاق قبل ذلك بنصف ساعة قد يكون أنسب.`);
+  else recs.push(`الوقت المحدد ضمن الفترات الأقل ازدحامًا في النموذج — مناسب للتنقل.`);
+  if(!we && h>=12 && h<=15) recs.push('دراسة توزيع أوقات خروج الطلاب لتقليل تزامنها مع خروج الموظفين.');
+  if(!we && h>=15 && h<=18) recs.push('تشجيع المرونة في أوقات الدوام ومشاركة السيارات في محاور المكاتب.');
+  if(!we && h>=6 && h<=9) recs.push('تفعيل النقل العام والحافلات المدرسية في ساعات الصباح حيثما كان مناسبًا.');
+  if(we || h>=19) recs.push('التنسيق المسبق لإدارة الحركة حول الوجهات الترفيهية في الفترة المسائية.');
+  const top=sorted.filter(x=>x.v>=70).slice(0,2).map(x=>x.z.name);
+  if(top.length) recs.push(`متابعة خاصة لمناطق: ${top.join('، ')}.`);
+  recs.push('جرّب أثر هذه الحلول في مختبر «ماذا لو؟» قبل اعتمادها.');
+  return recs.slice(0,5);
+}
+function renderDashboard(){
+  const zid=$('#fZone').value, day=+$('#fDay').value, h=+$('#fHour').value;
+  const vals=ZONES.map(z=>({z,v:value(z,day,h)})).sort((a,b)=>b.v-a.v);
+  const cnt={low:0,mid:0,high:0}; vals.forEach(x=>cnt[levelOf(x.v)]++);
+  $('#kZones').textContent=ZONES.length; $('#kLow').textContent=cnt.low; $('#kMid').textContent=cnt.mid; $('#kHigh').textContent=cnt.high;
+  const c=cityCurve(day,BASE,zid); const v=c[h];
+  $('#curLevelBadge').className='badge '+LV[levelOf(v)].b; $('#curLevelBadge').textContent=`${zid==='all'?'متوسط المدينة':ZONES.find(z=>z.id===zid).name} · ${hourLabel(h)}: ${v}%`;
+  $('#expectedTxt').className='badge '+LV[levelOf(v)].b; $('#expectedTxt').textContent='المستوى المتوقع: '+LV[levelOf(v)].t;
+
+  makeChart('dayChart',{type:'line',data:{labels:hourLabels,datasets:[
+      {label:zid==='all'?'متوسط المناطق':ZONES.find(z=>z.id===zid).name,data:c,borderColor:'#38bdf8',borderWidth:2.5,tension:.4,fill:true,
+       backgroundColor:ctx=>gradFill(ctx.chart.ctx,'rgba(56,189,248,.35)','rgba(56,189,248,0)'),
+       pointRadius:c.map((_,i)=>i===h?6:0),pointBackgroundColor:c.map(x=>LV[levelOf(x)].c),pointBorderColor:'#fff'},
+      {label:'حد الازدحام المرتفع',data:new Array(24).fill(70),borderColor:'rgba(239,68,68,.5)',borderDash:[6,6],borderWidth:1,pointRadius:0,fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:x=>`${x.dataset.label}: ${x.raw}%`}}}}});
+
+  const avg=(a,b)=>{let s=0,n=0;for(let i=a;i<=b;i++){s+=c[i];n++;}return Math.round(s/n);};
+  const groups=WEEKEND.includes(day)
+    ? [['الذروة المسائية (8م–11م)',avg(20,23),'#ef4444'],['العصر (4م–7م)',avg(16,19),'#facc15'],['الظهيرة (12م–3م)',avg(12,15),'#38bdf8'],['الصباح (6ص–10ص)',avg(6,10),'#22c55e']]
+    : [['ذروة الصباح (6ص–9ص)',avg(6,9),'#ef4444'],['ذروة العصر (1م–6م)',avg(13,18),'#f97316'],['منتصف النهار (10ص–12م)',avg(10,12),'#38bdf8'],['الليل (11م–5ص)',Math.round((avg(23,23)+avg(0,5)*6)/7),'#22c55e']];
+  makeChart('peakChart',{type:'bar',data:{labels:groups.map(g=>g[0]),datasets:[{data:groups.map(g=>g[1]),backgroundColor:groups.map(g=>g[2]+'cc'),borderRadius:10,maxBarThickness:46}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>'متوسط '+x.raw+'%'}}},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+  $('#watchList').innerHTML=vals.map(x=>`<li><div><b style="font-size:.92rem">${x.z.name}</b><div style="font-size:.72rem;color:var(--dim)">${x.z.type}</div></div><div class="bar-mini"><span style="width:${x.v}%;background:${LV[levelOf(x.v)].c}"></span></div>${badge(x.v)}</li>`).join('');
+  $('#dashRecs').innerHTML=dashRecommendations(zid,day,h,v,vals).map(r=>`<li><i class="ri-arrow-left-s-line"></i><span>${r}</span></li>`).join('');
+}
+
+/* =========================================================
+   6) MAP
+   ========================================================= */
+let map=null, layers={}, tileErrors=0, mapMode='leaflet';
+function zonePopup(z,day,h){
+  const v=value(z,day,h);
+  return `<h4>${z.name} <span style="font-size:.75rem;color:var(--muted)">(${z.type})</span></h4>
+    <p>${badge(v)}</p><p><b>اليوم والساعة:</b> ${DAYS[day]} · ${hourLabel(h)}</p>
+    <p><b>الفترة المتوقعة لهذا المستوى:</b> ${windowAround(z,day,h)}</p>
+    <p><b>العوامل المؤثرة:</b> ${z.f.join('، ')}</p>
+    <p style="color:#fde68a;font-size:.75rem!important">* تقدير افتراضي من نموذج المحاكاة</p>`;
+}
+function showZoneDetail(z){
+  state.selectedZone=z.id; const day=+$('#mDay').value,h=+$('#mHour').value; const c=curve(z,day,BASE);
+  const peak=Math.max(...c), ph=c.indexOf(peak);
+  $('#zoneDetail').innerHTML=`<div class="fade-in">${zonePopup(z,day,h)}<p><b>ذروة اليوم:</b> ${peak}% عند ${hourLabel(ph)}</p>
+    <button class="btn btn-sm" style="margin-top:10px" onclick="goPredict('${z.id}')"><i class="ri-brain-line"></i>تحليل هذه المنطقة</button></div>`;
+}
+window.goPredict=function(id){ $('#pZone').value=id; $('#pDay').value=$('#mDay').value; $('#pTime').value=String($('#mHour').value).padStart(2,'0')+':00'; location.hash='#predict'; runPredict(); };
+function initMap(){
+  if(typeof L==='undefined'){ useFallback('تعذّر تحميل مكتبة الخرائط (Leaflet). يُعرض مخطط بديل للمناطق.'); return; }
+  try{
+    map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false}).setView([24.725,46.70],11);
+    const tl=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'});
+    tl.on('tileerror',()=>{tileErrors++; if(tileErrors===6) toast('تعذّر تحميل بلاطات الخريطة — المناطق ما زالت معروضة','ri-wifi-off-line');});
+    tl.addTo(map);
+    map.on('focus',()=>map.scrollWheelZoom.enable()); map.on('blur',()=>map.scrollWheelZoom.disable());
+    ZONES.forEach(z=>{
+      const circle=L.circle([z.lat,z.lng],{radius:1700,weight:2,fillOpacity:.32});
+      const dot=L.circleMarker([z.lat,z.lng],{radius:5,weight:0,fillOpacity:1});
+      const grp=L.featureGroup([circle,dot]).bindPopup('').bindTooltip(z.name,{direction:'top',className:''});
+      grp.on('click',()=>{grp.setPopupContent(zonePopup(z,+$('#mDay').value,+$('#mHour').value));showZoneDetail(z);});
+      layers[z.id]={grp,circle,dot};
+    });
+    renderMap();
+  }catch(e){ useFallback('حدث خطأ أثناء تهيئة الخريطة. يُعرض مخطط بديل.'); }
+}
+function useFallback(msg){
+  mapMode='fallback'; $('#map').style.display='none'; const fb=$('#mapFallback'); fb.style.display='block';
+  fb.dataset.msg=msg; renderMap();
+}
+function renderMap(){
+  const day=+$('#mDay').value,h=+$('#mHour').value;
+  if(mapMode==='leaflet' && map){
+    ZONES.forEach(z=>{const v=value(z,day,h),lv=levelOf(v),col=LV[lv].c,L_=layers[z.id];
+      L_.circle.setStyle({color:col,fillColor:col}); L_.dot.setStyle({fillColor:col});
+      const show=state.level==='all'||state.level===lv;
+      if(show&&!map.hasLayer(L_.grp))L_.grp.addTo(map); if(!show&&map.hasLayer(L_.grp))map.removeLayer(L_.grp);
+      if(map.hasLayer(L_.grp)&&L_.grp.isPopupOpen()) L_.grp.setPopupContent(zonePopup(z,day,h));
+    });
+  } else {
+    const fb=$('#mapFallback'); const lats=ZONES.map(z=>z.lat),lngs=ZONES.map(z=>z.lng);
+    const [la0,la1,ln0,ln1]=[Math.min(...lats),Math.max(...lats),Math.min(...lngs),Math.max(...lngs)];
+    fb.innerHTML=`<div class="map-tag" style="top:auto;bottom:12px;right:12px;max-width:80%"><i class="ri-wifi-off-line"></i> ${fb.dataset.msg||''}</div>`+
+      `<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.25"><defs><pattern id="gp" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#6b84d6" stroke-width=".6"/></pattern></defs><rect width="100%" height="100%" fill="url(#gp)"/></svg>`+
+      ZONES.map(z=>{const v=value(z,day,h),lv=levelOf(v); if(state.level!=='all'&&state.level!==lv)return '';
+        const x=10+80*(z.lng-ln0)/(ln1-ln0), y=10+80*(1-(z.lat-la0)/(la1-la0)); const col=LV[lv].c;
+        return `<div class="fb-dot" style="left:${x}%;top:${y}%;width:46px;height:46px;background:${col}40;border:2px solid ${col};box-shadow:0 0 20px ${col}80" data-z="${z.id}" role="button" tabindex="0" aria-label="${z.name}"><span style="font-size:.7rem;font-weight:700">${v}</span></div><div class="fb-label" style="left:${x}%;top:${y}%">${z.name}</div>`;}).join('');
+    fb.querySelectorAll('.fb-dot').forEach(d=>{const go=()=>showZoneDetail(ZONES.find(z=>z.id===d.dataset.z)); d.onclick=go; d.onkeydown=e=>{if(e.key==='Enter')go();};});
+  }
+  if(state.selectedZone) showZoneDetail(ZONES.find(z=>z.id===state.selectedZone));
+}
+
+/* =========================================================
+   7) PREDICT
+   ========================================================= */
+function runPredict(){
+  const z=ZONES.find(x=>x.id===$('#pZone').value), day=+$('#pDay').value;
+  const t=($('#pTime').value||'07:30').split(':'); const h=(+t[0])+(+t[1])/60;
+  const box=$('#predictResult');
+  box.innerHTML='<div class="result-empty"><div><div class="loader"></div>جارٍ تحليل الأنماط وتشغيل المحاكاة…</div></div>';
+  setTimeout(()=>{
+    const v=value(z,day,h), lv=levelOf(v), we=WEEKEND.includes(day);
+    // أسباب
+    const reasons=[];
+    if(!we && h>=6 && h<=9) reasons.push('ذروة التوجّه الصباحي إلى العمل والمدارس');
+    if(!we && h>=12.5 && h<=14.5) reasons.push('تزامن خروج الطلاب من المدارس');
+    if(!we && h>=14.5 && h<=18) reasons.push('خروج الموظفين من مقار العمل');
+    if(h>=19 && h<=23.5) reasons.push(we?'النشاط الترفيهي في عطلة نهاية الأسبوع':'النشاط المسائي التجاري والاجتماعي');
+    if(day===4 && h>=17) reasons.push('مساء الخميس يشهد عادة حركة أعلى');
+    reasons.push(...z.f.slice(0,2));
+    if(lv==='low') reasons.unshift('الوقت خارج فترات الذروة الرئيسية في النموذج');
+    // مقارنة أوقات
+    const opts=[]; for(let d=-2;d<=2;d+=0.5){const hh=h+d; if(hh<0||hh>23.75)continue; opts.push({h:hh,v:value(z,day,hh)});}
+    const best=opts.reduce((a,b)=>b.v<a.v?b:a);
+    const recs=[];
+    if(best.v<v-4) recs.push(`الانطلاق عند ${hourLabel(best.h)} يُقدَّر بمستوى ${best.v}% بدلًا من ${v}%.`);
+    else recs.push('وقتك المختار من أنسب الأوقات ضمن نطاق ساعتين.');
+    if(lv==='high'){recs.push('خطّط لزمن إضافي للرحلة وتجنّب التقاطعات الرئيسية في المنطقة.');recs.push('فكّر في مشاركة السيارة أو استخدام النقل العام إن توفّر.');}
+    else if(lv==='mid'){recs.push('تابع حالة الطريق قبل الانطلاق مباشرة.');}
+    else recs.push('الظروف المتوقعة مناسبة؛ حافظ على هذا التوقيت إن أمكن.');
+    const lvC=LV[lv].c;
+    box.innerHTML=`<div class="fade-in">
+      <div class="res-head">
+        <div class="gauge" style="width:96px;height:96px"><svg width="96" height="96" viewBox="0 0 110 110"><circle cx="55" cy="55" r="46" stroke="rgba(255,255,255,.07)" stroke-width="10" fill="none"/><circle cx="55" cy="55" r="46" stroke="${lvC}" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="${289-289*v/100}"/></svg><div class="val" style="font-size:1.4rem">${v}%</div></div>
+        <div><div style="color:var(--muted);font-size:.85rem">مستوى الازدحام المتوقع · ${z.name}</div><div class="res-level" style="color:${lvC}">${LV[lv].t}</div><div style="font-size:.8rem;color:var(--dim)">تقدير محاكاة تجريبي</div></div>
+      </div>
+      <div class="res-meta">
+        <div><small>اليوم</small><b>${DAYS[day]}</b></div>
+        <div><small>وقت الانطلاق</small><b>${hourLabel(h)}</b></div>
+        <div><small>الفترة المتوقعة لهذا المستوى</small><b>${windowAround(z,day,h)}</b></div>
+      </div>
+      <div class="res-cols">
+        <div><h4><i class="ri-question-line"></i> الأسباب المحتملة</h4><ul class="recs">${reasons.slice(0,4).map(r=>`<li><i class="ri-focus-line"></i><span>${r}</span></li>`).join('')}</ul></div>
+        <div><h4><i class="ri-lightbulb-line"></i> التوصيات</h4><ul class="recs">${recs.map(r=>`<li><i class="ri-arrow-left-s-line"></i><span>${r}</span></li>`).join('')}</ul></div>
+      </div>
+      <h4 style="margin:18px 0 8px;font-size:.95rem;color:var(--cyan)"><i class="ri-timer-line"></i> مقارنة أوقات الانطلاق (±ساعتين)</h4>
+      <div class="chart-box sm"><canvas id="predChart"></canvas></div>
+    </div>`;
+    makeChart('predChart',{type:'bar',data:{labels:opts.map(o=>hourLabel(o.h)),datasets:[{data:opts.map(o=>o.v),
+      backgroundColor:opts.map(o=>o.h===best.h?'#38bdf8':Math.abs(o.h-h)<.01?'#a78bfa':LV[levelOf(o.v)].c+'99'),borderRadius:8,maxBarThickness:40}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>{const o=opts[x.dataIndex];return `${x.raw}%${o.h===best.h?' — الأنسب':''}${Math.abs(o.h-h)<.01?' — وقتك':''}`;}}}},
+        scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  },550);
+}
+
+/* =========================================================
+   8) WHAT-IF LAB
+   ========================================================= */
+function readScenario(){
+  return {emp:+$('#sEmp').value,spread:+$('#sSpread').value,stu:+$('#sStu').value,red:+$('#sRed').value,
+    redFrom:+$('#sRedFrom').value,redTo:+$('#sRedTo').value,evZone:$('#sEvZone').value,evHour:+$('#sEvHour').value,evSize:+$('#sEvSize').value};
+}
+function stats(c){const peak=Math.max(...c);return{peak,ph:c.indexOf(peak),avg:Math.round(c.reduce((a,b)=>a+b,0)/c.length*10)/10,high:c.filter(v=>v>=70).length};}
+function fmtDelta(el,d,unit='',invert=false){ const e=$(el); const r=Math.round(d*10)/10; e.textContent=(r>0?'+':'')+r+unit; e.className=r>0?'up':r<0?'down':'flat'; }
+function describe(sc){
+  const p=[];
+  if(sc.emp) p.push(`خروج الموظفين ${sc.emp>0?'+':'−'}${Math.abs(sc.emp)} د`);
+  if(sc.spread) p.push(`توزيع الخروج ${sc.spread}%`);
+  if(sc.stu) p.push(`خروج الطلاب ${sc.stu>0?'+':'−'}${Math.abs(sc.stu)} د`);
+  if(sc.red) p.push(`خفض السيارات ${sc.red}% (${hourShort(sc.redFrom)}–${hourShort(sc.redTo)})`);
+  if(sc.evZone&&sc.evSize) p.push(`فعالية في ${ZONES.find(z=>z.id===sc.evZone).name} ${hourShort(sc.evHour)}`);
+  return p.length?p.join('، '):'بلا تعديلات';
+}
+function runLab(){
+  const sc=readScenario(); state.scenario=sc; store.set('scenario',sc);
+  const zid=$('#sZone').value, day=+$('#sDay').value;
+  $('#vEmp').textContent=hourLabel(16+sc.emp/60)+(sc.emp?` (${sc.emp>0?'+':'−'}${Math.abs(sc.emp)}د)`:'');
+  $('#vStu').textContent=hourLabel(13.25+sc.stu/60)+(sc.stu?` (${sc.stu>0?'+':'−'}${Math.abs(sc.stu)}د)`:'');
+  $('#vSpread').textContent=sc.spread+'%'; $('#vRed').textContent=sc.red+'%';
+  $('#vEv').textContent=sc.evZone&&sc.evSize?ZONES.find(z=>z.id===sc.evZone).name:'بلا';
+  const o=cityCurve(day,BASE,zid), n=cityCurve(day,sc,zid), so=stats(o), sn=stats(n);
+  $('#oPeak').innerHTML=`${so.peak}% <span style="font-size:.85rem">${badge(so.peak).replace(/ · \d+%/,'')}</span>`;
+  $('#nPeak').innerHTML=`${sn.peak}% <span style="font-size:.85rem">${badge(sn.peak).replace(/ · \d+%/,'')}</span>`;
+  $('#oTxt').textContent=`الذروة ${hourLabel(so.ph)} · المتوسط ${so.avg}% · ${so.high} ساعات مرتفعة`;
+  $('#nTxt').textContent=`الذروة ${hourLabel(sn.ph)} · المتوسط ${sn.avg}% · ${sn.high} ساعات مرتفعة`;
+  fmtDelta('#dPeak',sn.peak-so.peak,' نقطة'); fmtDelta('#dAvg',sn.avg-so.avg,' نقطة'); fmtDelta('#dHigh',sn.high-so.high,' س');
+  $('#dHour').textContent=hourLabel(sn.ph); $('#dHour').className=sn.ph===so.ph?'flat':'c-cyan';
+
+  const ds=[
+    {label:'الأصلي',data:o,borderColor:'#94a3b8',borderDash:[6,5],borderWidth:2,tension:.4,pointRadius:0,fill:false},
+    {label:'الجديد',data:n,borderColor:'#a78bfa',borderWidth:3,tension:.4,pointRadius:0,fill:true,backgroundColor:ctx=>gradFill(ctx.chart.ctx,'rgba(167,139,250,.35)','rgba(167,139,250,0)')}];
+  if(state.scenarioA) ds.push({label:'سيناريو أ',data:cityCurve(day,state.scenarioA,zid),borderColor:'#38bdf8',borderWidth:2,tension:.4,pointRadius:0,fill:false});
+  if(state.scenarioB) ds.push({label:'سيناريو ب',data:cityCurve(day,state.scenarioB,zid),borderColor:'#e879f9',borderWidth:2,tension:.4,pointRadius:0,fill:false});
+  ds.push({label:'حد المرتفع',data:new Array(24).fill(70),borderColor:'rgba(239,68,68,.45)',borderDash:[3,4],borderWidth:1,pointRadius:0,fill:false});
+  makeChart('labChart',{type:'line',data:{labels:hourLabels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:{duration:450},interaction:{mode:'index',intersect:false},
+    scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},plugins:{tooltip:{callbacks:{label:x=>`${x.dataset.label}: ${x.raw}%`}}}}});
+
+  // تفسير مبسط
+  const scope=zid==='all'?'متوسط المناطق التجريبية':'منطقة '+ZONES.find(z=>z.id===zid).name;
+  const we=WEEKEND.includes(day); const parts=[];
+  if(describe(sc)==='بلا تعديلات'){ parts.push(`السيناريو الجديد مطابق للوضع الأصلي في ${scope} يوم ${DAYS[day]}. حرّك أشرطة التمرير لتجربة قرار ما.`); }
+  else{
+    parts.push(`في ${scope} يوم ${DAYS[day]}، ${sn.peak===so.peak?`بقيت ذروة الازدحام المقدّرة عند ${so.peak}%`:`${sn.peak<so.peak?'انخفضت':'ارتفعت'} ذروة الازدحام المقدّرة من ${so.peak}% إلى ${sn.peak}%`}، و${sn.avg<=so.avg?'انخفض':'ارتفع'} المتوسط اليومي بمقدار ${Math.abs(Math.round((sn.avg-so.avg)*10)/10)} نقطة.`);
+    if(we && (sc.emp||sc.stu||sc.spread)) parts.push('ملاحظة: تعديلات أوقات الدوام والمدارس لا تؤثر في أيام العطلة ضمن النموذج.');
+    if(!we && sc.emp && sc.stu===0){ const gap=Math.abs((16+sc.emp/60)-13.25); parts.push(gap<2?'تقريب خروج الموظفين من وقت خروج الطلاب يزيد التزامن بينهما ويرفع الضغط.':'إبعاد خروج الموظفين عن خروج الطلاب يقلّل تراكب الذروتين.'); }
+    if(!we && sc.stu) parts.push(Math.abs((13.25+sc.stu/60)-(16+sc.emp/60))<2?'تقارب وقت خروج الطلاب مع الموظفين يرفع احتمال تكدّس الذروتين.':'المسافة الزمنية بين خروج الطلاب والموظفين تساعد على توزيع الحمل.');
+    if(!we && sc.spread) parts.push('توزيع أوقات الخروج على نطاق أوسع يجعل منحنى العصر أقل حدّة وأطول قليلًا.');
+    if(sc.red) parts.push(`خفض المركبات بنسبة ${sc.red}% بين ${hourLabel(sc.redFrom)} و${hourLabel(sc.redTo)} يخفض المستويات في تلك الفترة فقط.`);
+    if(sc.evZone&&sc.evSize) parts.push(`الفعالية في ${ZONES.find(z=>z.id===sc.evZone).name} تضيف ضغطًا قبل بدايتها وبعد انتهائها، ويمتد أثر أخف إلى المناطق القريبة.`);
+  }
+  $('#labExplain').innerHTML=parts.join(' ');
+  // توصيات
+  const r=[];
+  if(sn.peak<so.peak-2) r.push('السيناريو يُظهر تحسنًا في الذروة ضمن المحاكاة؛ يستحق الدراسة التفصيلية ببيانات فعلية.');
+  if(sn.peak>so.peak+2) r.push('السيناريو يرفع الذروة في المحاكاة؛ يُفضّل تعديل التوقيت أو إضافة إجراءات مساندة.');
+  if(!we && !sc.spread) r.push('جرّب رفع نسبة توزيع أوقات الخروج لمعرفة أثر المرونة في الدوام.');
+  if(!sc.red) r.push('أضف نسبة خفض للسيارات في ساعات الذروة لمحاكاة أثر مشاركة السيارات والنقل العام.');
+  if(sc.evZone&&sc.evSize) r.push('للفعاليات: جدولة البداية بعيدًا عن ذروة العصر وتوفير نقل ترددي ومواقف بديلة.');
+  if(!state.scenarioA) r.push('احفظ هذا السيناريو كـ«أ» ثم جرّب بديلًا واحفظه كـ«ب» للمقارنة.');
+  if(state.scenarioA&&state.scenarioB){const a=stats(cityCurve(day,state.scenarioA,zid)),b=stats(cityCurve(day,state.scenarioB,zid)); r.unshift(`في المقارنة: السيناريو ${a.peak<=b.peak?'أ':'ب'} يحقق ذروة أقل (${Math.min(a.peak,b.peak)}% مقابل ${Math.max(a.peak,b.peak)}%).`);}
+  $('#labRecs').innerHTML=r.slice(0,4).map(x=>`<li><i class="ri-arrow-left-s-line"></i><span>${x}</span></li>`).join('');
+  return {so,sn,sc,zid,day};
+}
+function setScenarioUI(sc){
+  $('#sEmp').value=sc.emp;$('#sSpread').value=sc.spread;$('#sStu').value=sc.stu;$('#sRed').value=sc.red;
+  $('#sRedFrom').value=sc.redFrom;$('#sRedTo').value=sc.redTo;$('#sEvZone').value=sc.evZone||ZONES[5].id;$('#sEvHour').value=sc.evHour;$('#sEvSize').value=sc.evSize;
+}
+function abStatus(){
+  const t=[]; if(state.scenarioA)t.push('أ: '+describe(state.scenarioA)); if(state.scenarioB)t.push('ب: '+describe(state.scenarioB));
+  $('#abStatus').textContent=t.length?t.join(' | '):'لم يُحفظ أي سيناريو بعد.';
+}
+
+/* =========================================================
+   9) SOLUTIONS
+   ========================================================= */
+const SOLUTIONS=[
+  {i:'ri-time-line',t:'أوقات بديلة للانطلاق',d:'اقتراح أوقات انطلاق أقل ضغطًا للأفراد بناءً على منحنى المنطقة.',why:'تتركز الرحلات في نوافذ زمنية قصيرة، وتحريك جزء منها يخفف القمة.',goal:'توزيع الطلب على الطريق زمنيًا.',a:'predict',sc:null},
+  {i:'ri-group-line',t:'تشجيع مشاركة السيارات',d:'برامج تحفيز في جهات العمل والجامعات لمشاركة الرحلات اليومية.',why:'نسبة كبيرة من المركبات في الذروة تقل راكبًا واحدًا.',goal:'تقليل عدد المركبات لنفس عدد المتنقلين.',a:'lab',sc:{red:15,redFrom:15,redTo:18}},
+  {i:'ri-bus-2-line',t:'الاستفادة من النقل العام',d:'توجيه الرحلات المناسبة نحو المترو والحافلات عندما تكون متاحة ومناسبة.',why:'النقل الجماعي ينقل أعدادًا أكبر بمساحة طريق أقل.',goal:'خفض الاعتماد على المركبة الخاصة في المحاور الرئيسية.',a:'lab',sc:{red:20,redFrom:6,redTo:9}},
+  {i:'ri-briefcase-4-line',t:'توزيع خروج الموظفين',d:'دراسة المرونة في أوقات الدوام أو تدرّج الخروج بين الجهات.',why:'تزامن خروج الموظفين يصنع ذروة حادة في العصر.',goal:'تسطيح منحنى ذروة العصر.',a:'lab',sc:{spread:60}},
+  {i:'ri-graduation-cap-line',t:'تنسيق أوقات خروج الطلاب',d:'دراسة فصل وقت خروج المدارس عن ذروة خروج الموظفين.',why:'تراكب الذروتين يرفع الضغط حول الأحياء التعليمية.',goal:'تقليل التزامن بين الذروتين.',a:'lab',sc:{stu:-30}},
+  {i:'ri-radar-line',t:'متابعة المناطق الحرجة',d:'رصد مستمر للمناطق التي يُتوقع ارتفاع الضغط فيها وإعداد خطط مسبقة.',why:'التدخل المبكر أسهل من معالجة الازدحام بعد تشكّله.',goal:'جاهزية أعلى في الأوقات والمواقع الحرجة.',a:'map',sc:null},
+];
+function renderSolutions(){
+  $('#solGrid').innerHTML=SOLUTIONS.map((s,k)=>`<div class="glass card hover sol reveal in"><div class="ico"><i class="${s.i}"></i></div><h3>${s.t}</h3><p>${s.d}</p>
+    <div class="why"><div><b>سبب الاقتراح:</b> ${s.why}</div><div><b>الهدف:</b> ${s.goal}</div></div>
+    <div class="actions"><button class="btn btn-sm" data-sol="${k}"><i class="${s.a==='lab'?'ri-flask-line':s.a==='map'?'ri-map-pin-line':'ri-brain-line'}"></i>${s.a==='lab'?'اختبره في المحاكاة':s.a==='map'?'افتح الخريطة':'جرّب التنبؤ'}</button></div></div>`).join('');
+  $$('[data-sol]').forEach(b=>b.onclick=()=>{const s=SOLUTIONS[+b.dataset.sol];
+    if(s.a==='lab'){ setScenarioUI({...BASE,evZone:$('#sEvZone').value,...s.sc}); runLab(); location.hash='#lab'; toast('تم تطبيق الحل في مختبر المحاكاة','ri-flask-line'); }
+    else if(s.a==='map'){ state.level='high'; $$('#levelChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.l==='high')); renderMap(); location.hash='#map-sec'; }
+    else location.hash='#predict';
+  });
+}
+
+/* =========================================================
+   10) REPORTS
+   ========================================================= */
+function zoneStats(day){return ZONES.map(z=>{const c=curve(z,day,BASE),s=stats(c);return{z,c,...s};});}
+function renderReports(){
+  const day=+$('#rDay').value, zs=zoneStats(day), city=cityCurve(day,BASE);
+  makeChart('hourChart',{type:'bar',data:{labels:hourLabels,datasets:[{label:'متوسط المناطق',data:city,backgroundColor:city.map(v=>LV[levelOf(v)].c+'bb'),borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.raw+'%'}}},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  let L=0,M=0,H=0; zs.forEach(s=>s.c.forEach(v=>{const l=levelOf(v);l==='low'?L++:l==='mid'?M++:H++;}));
+  makeChart('mixChart',{type:'doughnut',data:{labels:['منخفض','متوسط','مرتفع'],datasets:[{data:[L,M,H],backgroundColor:['#22c55e','#facc15','#ef4444'],borderColor:'#0a1024',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>`${x.label}: ${x.raw} ساعة-منطقة`}}}}});
+  $('#zoneTable').innerHTML=zs.sort((a,b)=>b.avg-a.avg).map(s=>`<tr><td><b>${s.z.name}</b></td><td>${s.z.type}</td><td>${s.avg}%</td><td>${s.peak}%</td><td>${hourLabel(s.ph)}</td><td>${s.high}</td><td>${badge(Math.round(s.avg))}</td></tr>`).join('');
+  renderLog();
+}
+function renderLog(){
+  $('#logTable').innerHTML=state.log.length?state.log.map((l,i)=>`<tr><td>${i+1}</td><td>${l.time}</td><td>${l.scope} · ${l.day}</td><td>${l.desc}</td><td>${l.o}% ← ${l.n}%</td><td class="${l.dAvg<0?'down':l.dAvg>0?'up':'flat'}">${l.dAvg>0?'+':''}${l.dAvg}</td></tr>`).join('')
+    :`<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:22px">لا توجد سيناريوهات مسجّلة بعد — استخدم زر «تسجيل السيناريو في التقارير» في مختبر المحاكاة.</td></tr>`;
+}
+function exportCSV(){
+  const day=+$('#rDay').value, zs=zoneStats(day), esc=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const rows=[['تقرير انسياب INSIAB AI - بيانات تجريبية مولّدة بنموذج محاكاة'],['اليوم',DAYS[day]],[],
+    ['المنطقة','الطابع','المتوسط %','الذروة %','ساعة الذروة','ساعات مرتفعة',...hourLabels.map(h=>'الساعة '+h)]];
+  zs.forEach(s=>rows.push([s.z.name,s.z.type,s.avg,s.peak,hourLabel(s.ph),s.high,...s.c]));
+  rows.push([],['السيناريوهات المجرّبة'],['#','الوقت','النطاق','اليوم','التعديلات','الذروة الأصلية','الذروة الجديدة','تغيّر المتوسط']);
+  state.log.forEach((l,i)=>rows.push([i+1,l.time,l.scope,l.day,l.desc,l.o,l.n,l.dAvg]));
+  const csv='﻿'+rows.map(r=>r.map(esc).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a'); a.href=url; a.download=`insiab-report-${DAYS[day]}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('تم تصدير ملف CSV');
+}
+
+/* =========================================================
+   11) INIT & EVENTS
+   ========================================================= */
+function initSelects(){
+  fill('#fZone',[['all','كل المناطق'],...ZONE_OPTS],'all'); fill('#fDay',DAY_OPTS,today); fill('#fHour',HOURS,nowHour);
+  fill('#mDay',DAY_OPTS,today); fill('#mHour',HOURS,nowHour);
+  fill('#pZone',ZONE_OPTS,'olaya'); fill('#pDay',DAY_OPTS,WEEKEND.includes(today)?0:today);
+  fill('#sZone',[['all','كل المناطق (متوسط)'],...ZONE_OPTS],'all'); fill('#sDay',DAY_OPTS,WEEKEND.includes(today)?0:today);
+  fill('#sRedFrom',HOURS,16); fill('#sRedTo',HOURS,19); fill('#sEvZone',ZONE_OPTS,'hittin'); fill('#sEvHour',HOURS.filter(h=>h[0]>=8),20);
+  fill('#rDay',DAY_OPTS,WEEKEND.includes(today)?0:today);
+}
+function resetAll(){
+  store.clear(); seed=1; state.log=[]; state.scenarioA=null; state.scenarioB=null; state.level='all'; state.selectedZone=null;
+  initSelects(); setScenarioUI({...BASE,evZone:'hittin'});
+  $$('#levelChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.l==='all'));
+  $('#zoneDetail').innerHTML='<p style="color:var(--dim)"><i class="ri-cursor-line"></i> اختر منطقة من الخريطة لعرض تفاصيلها هنا.</p>';
+  $('#predictResult').innerHTML='<div class="result-empty"><div><i class="ri-radar-line"></i>اختر المدخلات ثم اضغط «حلّل الازدحام» لعرض النتيجة.</div></div>';
+  if(map) map.closePopup();
+  abStatus(); renderAll(); toast('تمت إعادة ضبط التجربة بالكامل','ri-restart-line');
+}
+function renderAll(){renderHero();renderDashboard();renderMap();runLab();renderReports();}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // استعادة الحالة المحفوظة (إن وُجدت)
+  const sv=store.get('state'); if(sv){seed=sv.seed||1;state.log=sv.log||[];state.scenarioA=sv.A||null;state.scenarioB=sv.B||null;}
+  const persist=()=>store.set('state',{seed,log:state.log,A:state.scenarioA,B:state.scenarioB});
+
+  initSelects(); renderSolutions(); initCanvas(); initMap();
+  const savedSc=store.get('scenario'); setScenarioUI(savedSc?{...BASE,...savedSc}:{...BASE,evZone:'hittin'});
+  abStatus(); renderAll();
+  $('#printDate').textContent=new Date().toLocaleString('ar-SA');
+
+  ['#fZone','#fDay','#fHour'].forEach(s=>$(s).addEventListener('change',renderDashboard));
+  ['#mDay','#mHour'].forEach(s=>$(s).addEventListener('change',renderMap));
+  $('#refreshData').onclick=()=>{seed=Math.floor(Math.random()*9000)+2; persist(); const b=$('#refreshData i'); b.style.transition='transform .6s'; b.style.transform='rotate(360deg)'; setTimeout(()=>{b.style.transition='none';b.style.transform='none';},650); renderAll(); toast('تم تحديث بيانات النموذج التجريبي');};
+  $$('#levelChips .chip').forEach(c=>c.onclick=()=>{state.level=c.dataset.l;$$('#levelChips .chip').forEach(x=>x.classList.toggle('on',x===c));renderMap();});
+  $('#analyzeBtn').onclick=runPredict;
+  $$('#lab input, #lab select').forEach(el=>el.addEventListener('input',runLab));
+  $('#sRedFrom').addEventListener('change',()=>{if(+$('#sRedTo').value<+$('#sRedFrom').value){$('#sRedTo').value=$('#sRedFrom').value;runLab();}});
+  $('#sRedTo').addEventListener('change',()=>{if(+$('#sRedTo').value<+$('#sRedFrom').value){$('#sRedFrom').value=$('#sRedTo').value;runLab();}});
+  $('#labReset').onclick=()=>{setScenarioUI({...BASE,evZone:'hittin'});runLab();toast('أُعيدت المحاكاة إلى الوضع الأصلي','ri-arrow-go-back-line');};
+  $('#saveA').onclick=()=>{state.scenarioA=readScenario();persist();abStatus();runLab();toast('تم حفظ السيناريو أ');};
+  $('#saveB').onclick=()=>{state.scenarioB=readScenario();persist();abStatus();runLab();toast('تم حفظ السيناريو ب');};
+  $('#clearAB').onclick=()=>{state.scenarioA=state.scenarioB=null;persist();abStatus();runLab();};
+  $('#logScenario').onclick=()=>{const r=runLab(); state.log.push({time:new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}),scope:r.zid==='all'?'كل المناطق':ZONES.find(z=>z.id===r.zid).name,day:DAYS[r.day],desc:describe(r.sc),o:r.so.peak,n:r.sn.peak,dAvg:Math.round((r.sn.avg-r.so.avg)*10)/10}); persist(); renderLog(); toast('تم تسجيل السيناريو في التقارير','ri-file-add-line');};
+  $('#clearLog').onclick=()=>{state.log=[];persist();renderLog();};
+  $('#rDay').addEventListener('change',renderReports);
+  $('#csvBtn').onclick=exportCSV;
+  $('#printBtn').onclick=()=>{ $('#printDate').textContent=new Date().toLocaleString('ar-SA'); window.print(); };
+  $('#resetAll').onclick=()=>{ if(confirm('هل تريد إعادة ضبط التجربة بالكامل؟ سيُمسح سجل السيناريوهات.')) resetAll(); };
+  $('#simBtn').addEventListener('click',()=>setTimeout(()=>$('#sEmp').focus({preventScroll:true}),600));
+
+  // القائمة على الجوال
+  const nl=$('#navLinks'), mb=$('#menuBtn');
+  mb.onclick=()=>{nl.classList.toggle('open');mb.setAttribute('aria-expanded',nl.classList.contains('open'));};
+  $$('#navLinks a').forEach(a=>a.addEventListener('click',()=>{nl.classList.remove('open');mb.setAttribute('aria-expanded','false');}));
+
+  // تمييز الرابط النشط + ظهور العناصر
+  const secs=[...$$('section[id]')];
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}}),{rootMargin:'-45% 0px -50% 0px'});
+  secs.forEach(s=>io.observe(s));
+  const rv=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rv.unobserve(e.target);}}),{threshold:.12});
+  $$('.reveal').forEach(el=>rv.observe(el));
+  // إصلاح حجم الخريطة عند ظهورها
+  if(map){ new IntersectionObserver(es=>{if(es[0].isIntersecting)map.invalidateSize();}).observe($('#map')); }
+});
+</script>
+</body>
+</html>

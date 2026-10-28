@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وثيقة التحليل والتصميم</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f5f7;--surface:#fff;--line:#e3e6eb;--txt:#1b2333;--muted:#667085;--navy:#14284b;--gold:#b8913f}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e131c;--surface:#161d29;--line:#283244;--txt:#e6e9ef;--muted:#97a0b2}}
+  :root[data-theme="dark"]{--bg:#0e131c;--surface:#161d29;--line:#283244;--txt:#e6e9ef;--muted:#97a0b2}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"IBM Plex Sans Arabic",Tahoma,sans-serif;background:var(--bg);color:var(--txt);line-height:1.8}
+  header{background:var(--navy);color:#fff;border-bottom:3px solid var(--gold);padding:28px 16px;text-align:center}
+  header h1{margin:0;font-size:24px} header p{margin:4px 0 0;opacity:.75}
+  main{max-width:960px;margin:auto;padding:24px 16px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin-bottom:18px}
+  h2{margin:0 0 10px;font-size:18px;color:var(--gold)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:right;vertical-align:top}
+  th{background:#8881}
+  .tbl{overflow-x:auto}
+  .mermaid{direction:ltr;text-align:center;overflow-x:auto}
+  code{background:#8882;padding:1px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+<header><h1>نظام الحضور والانصراف</h1><p>وثيقة التحليل والتصميم</p></header>
+<main>
+
+<section>
+  <h2>1. ربط المشروع ببنود الخطة التدريبية</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>البند</th><th>التطبيق في المشروع</th></tr>
+    <tr><td>1</td><td>برنامج متكامل بواجهات رسومية بلغة Java</td><td>تطبيق سطح المكتب للمدير <code>AdminApp.java</code> (Swing)، وخادم النظام <code>Server.java</code></td></tr>
+    <tr><td>2</td><td>صفحات إنترنت بـ HTML و JavaScript</td><td>صفحة البصمة <code>index.html</code> ولوحة المدير <code>admin.html</code></td></tr>
+    <tr><td>3</td><td>تحليل وتصميم قاعدة بيانات Oracle</td><td><code>schema.sql</code>: أربعة جداول وعلاقات وقيود وView للتقارير</td></tr>
+    <tr><td>4</td><td>موقع ديناميكي مرتبط بقاعدة البيانات</td><td>واجهة REST API تقرأ وتكتب في Oracle عبر JDBC</td></tr>
+    <tr><td>5</td><td>منهجيات تطوير البرمجيات وتحليل المتطلبات</td><td>هذه الوثيقة: المنهجية والمتطلبات والمخططات وحالات الاختبار</td></tr>
+    <tr><td>6</td><td>تطبيقات للمتصفحات والأجهزة الذكية</td><td>تصميم متجاوب + PWA قابل للتثبيت على Android و iOS و Windows</td></tr>
+    <tr><td>7</td><td>تطوير تطبيقات Android</td><td>مشروع Android Studio في مجلد <code>android</code></td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>2. منهجية التطوير</h2>
+  <p>اعتمد المشروع <b>النموذج التكراري (Iterative)</b>، وفيه ثلاث دورات. كل دورة تمر بمراحل التحليل والتصميم والتنفيذ والاختبار:</p>
+  <ol>
+    <li><b>الدورة الأولى:</b> نموذج أولي للبصمة على المتصفح (HTML و JavaScript).</li>
+    <li><b>الدورة الثانية:</b> قاعدة بيانات Oracle، وخادم Java، وربط الموقع بالبيانات.</li>
+    <li><b>الدورة الثالثة:</b> لوحة المدير (ويب وسطح مكتب)، وتطبيق Android، والتثبيت على الأجهزة الذكية.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>3. المتطلبات</h2>
+  <h3>المتطلبات الوظيفية</h3>
+  <div class="tbl"><table>
+    <tr><th>الرمز</th><th>المتطلب</th></tr>
+    <tr><td>FR1</td><td>يدخل الموظف بالرقم الوظيفي والرمز السري.</td></tr>
+    <tr><td>FR2</td><td>تظهر أيقونة "تسجيل حضور" إذا لم يسجّل الموظف حضوره اليوم.</td></tr>
+    <tr><td>FR3</td><td>تظهر أيقونة "الاستراحة" بعد وقت الاستراحة، مرة واحدة في اليوم، ثم تظهر أيقونة "نهاية الاستراحة".</td></tr>
+    <tr><td>FR4</td><td>بعد نهاية الدوام تظهر أيقونتا "انصراف" و"عمل إضافي".</td></tr>
+    <tr><td>FR5</td><td>يحسب النظام التأخير ومدة الاستراحة والعمل الإضافي.</td></tr>
+    <tr><td>FR6</td><td>يعرض المدير حضور وغياب كل الموظفين لأي يوم، ويصدّرها CSV.</td></tr>
+    <tr><td>FR7</td><td>يضيف المدير موظفين، ويوقف حساباتهم، ويعدّل أوقات الدوام.</td></tr>
+  </table></div>
+  <h3>المتطلبات غير الوظيفية</h3>
+  <ul>
+    <li><b>الأمان:</b> الرمز السري يُحفظ مشفّراً (SHA-256)، والتحقق من الإجراء يتم بوقت الخادم وليس بوقت الجهاز، ولوحة المدير محمية بالصلاحية.</li>
+    <li><b>التوافق:</b> النظام يعمل على المتصفحات والجوالات، وعلى تطبيق Android.</li>
+    <li><b>سلامة البيانات:</b> قيد <code>UNIQUE(emp_id, att_date, action)</code> يمنع تكرار نفس الحركة في نفس اليوم.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>4. معمارية النظام</h2>
+  <div class="mermaid">
+flowchart LR
+  A[Web Browser<br/>index.html / admin.html] -->|REST JSON| S
+  B[Android App<br/>WebView] -->|REST JSON| S
+  C[Admin Desktop<br/>Java Swing] -->|JDBC| D
+  S[Java Server<br/>Server.java + Rules] -->|JDBC| D[(Oracle DB)]
+  </div>
+</section>
+
+<section>
+  <h2>5. مخطط قاعدة البيانات (ERD)</h2>
+  <div class="mermaid">
+erDiagram
+  DEPARTMENTS ||--o{ EMPLOYEES : contains
+  SHIFTS ||--o{ EMPLOYEES : assigned
+  EMPLOYEES ||--o{ ATTENDANCE : records
+  DEPARTMENTS {
+    NUMBER dept_id PK
+    VARCHAR2 name
+  }
+  SHIFTS {
+    NUMBER shift_id PK
+    VARCHAR2 name
+    CHAR start_time
+    CHAR break_time
+    NUMBER break_minutes
+    CHAR end_time
+  }
+  EMPLOYEES {
+    VARCHAR2 emp_id PK
+    VARCHAR2 full_name
+    NUMBER dept_id FK
+    NUMBER shift_id FK
+    VARCHAR2 role
+    VARCHAR2 pin_hash
+    CHAR active
+  }
+  ATTENDANCE {
+    NUMBER att_id PK
+    VARCHAR2 emp_id FK
+    DATE att_date
+    VARCHAR2 action
+    TIMESTAMP action_time
+    VARCHAR2 device
+  }
+  </div>
+</section>
+
+<section>
+  <h2>6. مخطط حالات الاستخدام</h2>
+  <div class="mermaid">
+flowchart LR
+  E((Employee)) --> U1[Login]
+  E --> U2[Check in]
+  E --> U3[Start / end break]
+  E --> U4[Check out / overtime]
+  M((Admin)) --> U1
+  M --> U5[View daily attendance]
+  M --> U6[Export report]
+  M --> U7[Manage employees]
+  M --> U8[Edit shift times]
+  </div>
+</section>
+
+<section>
+  <h2>7. مخطط الحالات للبصمة</h2>
+  <div class="mermaid">
+stateDiagram-v2
+  [*] --> NotCheckedIn
+  NotCheckedIn --> Working: IN
+  Working --> OnBreak: BREAK_START (after break time, once)
+  OnBreak --> Working: BREAK_END
+  Working --> Left: OUT (after shift end)
+  Working --> Overtime: OT_START (after shift end)
+  Overtime --> Left: OT_END
+  Left --> [*]
+  </div>
+</section>
+
+<section>
+  <h2>8. مخطط التسلسل لتسجيل البصمة</h2>
+  <div class="mermaid">
+sequenceDiagram
+  participant U as Employee (Web/Android)
+  participant S as Java Server
+  participant D as Oracle
+  U->>S: POST /api/punch {action}
+  S->>D: SELECT today's punches + shift
+  S->>S: Rules.allowed(server time)
+  alt allowed
+    S->>D: INSERT INTO attendance
+    S-->>U: 200 new status + buttons
+  else not allowed
+    S-->>U: 409 action not available
+  end
+  </div>
+</section>
+
+<section>
+  <h2>9. حالات الاختبار</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>الحالة</th><th>النتيجة المتوقعة</th></tr>
+    <tr><td>T1</td><td>دخول برمز سري خاطئ</td><td>رسالة "الرقم الوظيفي أو الرمز السري غير صحيح"</td></tr>
+    <tr><td>T2</td><td>أول دخول في اليوم</td><td>تظهر أيقونة تسجيل الحضور فقط</td></tr>
+    <tr><td>T3</td><td>الساعة 11:00 بعد تسجيل الحضور</td><td>تظهر أيقونة الاستراحة</td></tr>
+    <tr><td>T4</td><td>محاولة استراحة ثانية في نفس اليوم</td><td>الأيقونة لا تظهر، والخادم يرفض الطلب (409)</td></tr>
+    <tr><td>T5</td><td>الساعة 15:00</td><td>تظهر أيقونتا الانصراف والعمل الإضافي</td></tr>
+    <tr><td>T6</td><td>تسجيل الحضور الساعة 08:20</td><td>التأخير 20 دقيقة</td></tr>
+    <tr><td>T7</td><td>موظف عادي يفتح admin.html</td><td>يُعاد توجيهه، والـ API يرجع 403</td></tr>
+    <tr><td>T8</td><td>البصمة من تطبيق Android</td><td>تُحفظ الحركة بقيمة device = ANDROID</td></tr>
+  </table></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({startOnLoad: true, theme: dark ? 'dark' : 'neutral'});
+</script>
+</body>
+</html>

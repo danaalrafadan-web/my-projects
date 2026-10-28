@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">البصمة</string>
+    <!-- عنوان الخادم: 10.0.2.2 = جهاز الكمبيوتر عند التشغيل على المحاكي.
+         على جوال حقيقي ضع IP الكمبيوتر في الشبكة، مثل http://192.168.1.10:8080/ -->
+    <string name="server_url">http://10.0.2.2:8080/</string>
+    <string name="offline">تعذر الاتصال بالخادم. تأكد من الشبكة ثم أعد فتح التطبيق.</string>
+</resources>
